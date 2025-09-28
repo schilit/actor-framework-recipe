@@ -1,5 +1,6 @@
 # Actor Recipe for Rust
 
+[![CI](https://github.com/schilit/actor-recipe/actions/workflows/ci.yml/badge.svg)](https://github.com/schilit/actor-recipe/actions/workflows/ci.yml)
 [![Documentation](https://github.com/schilit/actor-recipe/actions/workflows/docs.yml/badge.svg)](https://schilit.github.io/actor-recipe/)
 
 A recipe for building actor systems with minimal boilerplate and good observability.
