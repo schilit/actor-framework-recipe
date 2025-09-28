@@ -1086,11 +1086,7 @@ fn setup_tracing() {
 /// - **Sync**: Fast lookups, in-memory operations, simple computations
 /// - **Async**: Database calls, external APIs, file I/O, complex validation
 /// - **Background**: Email sending, report generation, cleanup tasks, analytics
-
-// =============================================================================
-// PRACTICAL EXAMPLES: ADVANCED HANDLER PATTERNS
-// =============================================================================
-
+///
 /// Example of a background operation that returns immediately and continues work
 impl UserService {
     /// **Background Handler Example** - Task owns the response channel
