@@ -2,9 +2,9 @@ name: Generate and Deploy Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "framework-refactor" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "framework-refactor" ]
   workflow_dispatch:
 
 permissions:
@@ -45,7 +45,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build-docs
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/framework-refactor'
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
