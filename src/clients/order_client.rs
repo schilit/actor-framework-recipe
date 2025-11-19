@@ -4,6 +4,10 @@ use crate::app_system::OrderError;
 use crate::actor_framework::ResourceClient;
 use crate::clients::{UserClient, ProductClient};
 
+/// Client for interacting with the Order actor.
+///
+/// This client handles complex orchestration, validating users and products
+/// before creating an order.
 #[derive(Clone)]
 pub struct OrderClient {
     inner: ResourceClient<Order>,

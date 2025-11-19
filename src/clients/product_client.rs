@@ -3,6 +3,7 @@ use crate::domain::Product;
 use crate::product_actor::ProductError;
 use crate::actor_framework::ResourceClient;
 
+/// Client for interacting with the Product actor.
 #[derive(Clone)]
 pub struct ProductClient {
     inner: ResourceClient<Product>,

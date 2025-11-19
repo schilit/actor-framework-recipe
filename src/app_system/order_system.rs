@@ -5,6 +5,9 @@ use crate::domain::{User, Product, Order};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// The main application system that orchestrates all actors.
+///
+/// Responsible for starting up actors, wiring them together, and handling shutdown.
 pub struct OrderSystem {
     pub order_client: OrderClient,
     pub user_client: UserClient,

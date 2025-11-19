@@ -3,6 +3,7 @@ use crate::domain::{User, UserCreate, UserPatch};
 use crate::user_actor::UserError;
 use crate::actor_framework::ResourceClient;
 
+/// Client for interacting with the User actor.
 #[derive(Clone)]
 pub struct UserClient {
     inner: ResourceClient<User>,
