@@ -2,29 +2,47 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::fmt::{Debug, Display};
 use tokio::sync::{mpsc, oneshot};
-use std::sync::Arc;
+
 
 // =============================================================================
 // 1. THE ABSTRACTION (Traits with Hooks, DTOs, and Actions)
 // =============================================================================
 
-/// Trait that any domain entity must implement to be managed by ResourceActor
+/// Trait that any domain entity must implement to be managed by ResourceActor.
+///
+/// # Architecture Note
+/// Why do we need this trait?
+/// By defining a contract (`Entity`) that all our domain objects (User, Product, Order)
+/// must satisfy, we can write the `ResourceActor` logic *once* and reuse it everywhere.
+/// This is "Polymorphism" in action.
+///
+/// We use "Associated Types" (type Id, type CreatePayload, etc.) to enforce type safety.
+/// A `User` entity requires a `UserCreate` payload, and you can't accidentally send it
+/// a `ProductCreate` payload. The compiler prevents this class of bugs entirely.
 pub trait Entity: Clone + Send + Sync + 'static {
+    /// The unique identifier for this entity (e.g., String, Uuid, u64).
     type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
+    
+    /// The data required to create a new instance (DTO - Data Transfer Object).
     type CreatePayload: Send + Sync + Debug;
+    
+    /// The data required to update an existing instance.
     type Patch: Send + Sync + Debug;
     
     // --- New: Custom Actions ---
+    /// Enum representing domain-specific operations (e.g., `ReserveStock`).
     type Action: Send + Sync + Debug;
+    
+    /// The result type returned by custom actions.
     type ActionResult: Send + Sync + Debug;
 
-    /// Get the ID of the entity
-    fn id(&self) -> &Self::Id;
-    
-    /// Construct the full Entity from the ID and Payload
+    /// Construct the full Entity from the ID and Payload.
+    /// This is called by the actor when it receives a `Create` request.
     fn from_create(id: Self::Id, payload: Self::CreatePayload) -> Result<Self, String>;
 
     // --- Lifecycle Hooks ---
+    // These allow the entity to execute logic during lifecycle events.
+    // Default implementations do nothing (Ok(())), but can be overridden.
 
     fn on_create(&mut self) -> Result<(), String> { Ok(()) }
     fn on_update(&mut self, patch: Self::Patch) -> Result<(), String>;
@@ -32,7 +50,8 @@ pub trait Entity: Clone + Send + Sync + 'static {
 
     // --- Action Handler ---
     
-    /// Handle a custom domain-specific action
+    /// Handle a custom domain-specific action.
+    /// This is where the "business logic" for complex operations lives.
     fn handle_action(&mut self, action: Self::Action) -> Result<Self::ActionResult, String>;
 }
 
@@ -40,7 +59,23 @@ pub trait Entity: Clone + Send + Sync + 'static {
 // 2. THE GENERIC MESSAGES
 // =============================================================================
 
-pub type Response<T> = oneshot::Sender<Result<T, String>>;
+// =============================================================================
+// 2. THE GENERIC MESSAGES & ERRORS
+// =============================================================================
+
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum FrameworkError {
+    #[error("Actor closed")]
+    ActorClosed,
+    #[error("Actor dropped response channel")]
+    ActorDropped,
+    #[error("Item not found: {0}")]
+    NotFound(String),
+    #[error("Custom error: {0}")]
+    Custom(String),
+}
+
+pub type Response<T> = oneshot::Sender<Result<T, FrameworkError>>;
 
 #[derive(Debug)]
 pub enum ResourceRequest<T: Entity> {
@@ -57,6 +92,7 @@ pub enum ResourceRequest<T: Entity> {
         patch: T::Patch,
         respond_to: Response<T>,
     },
+    #[allow(dead_code)]
     Delete {
         id: T::Id,
         respond_to: Response<()>,
@@ -72,6 +108,17 @@ pub enum ResourceRequest<T: Entity> {
 // 3. THE GENERIC ACTOR SERVER
 // =============================================================================
 
+/// The generic actor that manages a collection of entities.
+///
+/// # Architecture Note
+/// This struct is the "Server" half of the actor. It owns the state (`store`) and
+/// the receiver end of the channel.
+///
+/// **Concurrency Model**:
+/// Even though we might have 1000 `ResourceActor` instances running, each one
+/// processes its own messages *sequentially* in a loop. This means we don't need
+/// `Mutex` or `RwLock` for the `store`! The "Actor Model" gives us safety through
+/// exclusive ownership of state within the task.
 pub struct ResourceActor<T: Entity> {
     receiver: mpsc::Receiver<ResourceRequest<T>>,
     store: HashMap<T::Id, T>,
@@ -89,7 +136,7 @@ impl<T: Entity> ResourceActor<T> {
             store: HashMap::new(),
             next_id_fn: Box::new(next_id_fn),
         };
-        let client = ResourceClient { sender };
+        let client = ResourceClient::new(sender);
         (actor, client)
     }
 
@@ -101,13 +148,13 @@ impl<T: Entity> ResourceActor<T> {
                     match T::from_create(id.clone(), payload) {
                         Ok(mut item) => {
                             if let Err(e) = item.on_create() {
-                                let _ = respond_to.send(Err(e));
+                                let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                                 continue;
                             }
                             self.store.insert(id.clone(), item);
                             let _ = respond_to.send(Ok(id));
                         }
-                        Err(e) => { let _ = respond_to.send(Err(e)); }
+                        Err(e) => { let _ = respond_to.send(Err(FrameworkError::Custom(e))); }
                     }
                 }
                 ResourceRequest::Get { id, respond_to } => {
@@ -117,32 +164,33 @@ impl<T: Entity> ResourceActor<T> {
                 ResourceRequest::Update { id, patch, respond_to } => {
                     if let Some(item) = self.store.get_mut(&id) {
                         if let Err(e) = item.on_update(patch) {
-                            let _ = respond_to.send(Err(e));
+                            let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                             continue;
                         }
                         let _ = respond_to.send(Ok(item.clone()));
                     } else {
-                        let _ = respond_to.send(Err(format!("Item not found: {}", id)));
+                        let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
                     }
                 }
                 ResourceRequest::Delete { id, respond_to } => {
                     if let Some(item) = self.store.get(&id) {
                         if let Err(e) = item.on_delete() {
-                            let _ = respond_to.send(Err(e));
+                            let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                             continue;
                         }
                         self.store.remove(&id);
                         let _ = respond_to.send(Ok(()));
                     } else {
-                        let _ = respond_to.send(Err(format!("Item not found: {}", id)));
+                        let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
                     }
                 }
                 ResourceRequest::Action { id, action, respond_to } => {
                     if let Some(item) = self.store.get_mut(&id) {
-                        let result = item.handle_action(action);
+                        let result = item.handle_action(action)
+                            .map_err(FrameworkError::Custom);
                         let _ = respond_to.send(result);
                     } else {
-                         let _ = respond_to.send(Err(format!("Item not found: {}", id)));
+                         let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
                     }
                 }
             }
@@ -160,39 +208,44 @@ pub struct ResourceClient<T: Entity> {
 }
 
 impl<T: Entity> ResourceClient<T> {
-    pub async fn create(&self, payload: T::CreatePayload) -> Result<T::Id, String> {
+    pub fn new(sender: mpsc::Sender<ResourceRequest<T>>) -> Self {
+        Self { sender }
+    }
+
+    pub async fn create(&self, payload: T::CreatePayload) -> Result<T::Id, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
         self.sender.send(ResourceRequest::Create { payload, respond_to })
-            .await.map_err(|_| "Actor closed".to_string())?;
-        response.await.map_err(|_| "Actor dropped".to_string())?
+            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
-    pub async fn get(&self, id: T::Id) -> Result<Option<T>, String> {
+    pub async fn get(&self, id: T::Id) -> Result<Option<T>, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
         self.sender.send(ResourceRequest::Get { id, respond_to })
-            .await.map_err(|_| "Actor closed".to_string())?;
-        response.await.map_err(|_| "Actor dropped".to_string())?
+            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
-    pub async fn update(&self, id: T::Id, patch: T::Patch) -> Result<T, String> {
+    pub async fn update(&self, id: T::Id, patch: T::Patch) -> Result<T, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
         self.sender.send(ResourceRequest::Update { id, patch, respond_to })
-            .await.map_err(|_| "Actor closed".to_string())?;
-        response.await.map_err(|_| "Actor dropped".to_string())?
+            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
-    pub async fn delete(&self, id: T::Id) -> Result<(), String> {
+    #[allow(dead_code)]
+    pub async fn delete(&self, id: T::Id) -> Result<(), FrameworkError> {
         let (respond_to, response) = oneshot::channel();
         self.sender.send(ResourceRequest::Delete { id, respond_to })
-            .await.map_err(|_| "Actor closed".to_string())?;
-        response.await.map_err(|_| "Actor dropped".to_string())?
+            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
-    pub async fn perform_action(&self, id: T::Id, action: T::Action) -> Result<T::ActionResult, String> {
+    pub async fn perform_action(&self, id: T::Id, action: T::Action) -> Result<T::ActionResult, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
         self.sender.send(ResourceRequest::Action { id, action, respond_to })
-            .await.map_err(|_| "Actor closed".to_string())?;
-        response.await.map_err(|_| "Actor dropped".to_string())?
+            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 }
 
@@ -203,6 +256,7 @@ impl<T: Entity> ResourceClient<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
     use std::sync::atomic::{AtomicU64, Ordering};
 
     // --- Domain Definition ---
@@ -229,6 +283,7 @@ mod tests {
     #[derive(Debug)]
     enum UserAction {
         PromoteToAdmin,
+        #[allow(dead_code)]
         Rename(String),
     }
 
@@ -239,7 +294,7 @@ mod tests {
         type Action = UserAction;
         type ActionResult = bool;
 
-        fn id(&self) -> &String { &self.id }
+        // fn id(&self) -> &String { &self.id }
 
         fn from_create(id: String, payload: SimpleUserCreate) -> Result<Self, String> {
             Ok(Self {
@@ -305,5 +360,15 @@ mod tests {
         // 3. Perform Action: Promote again (should return false)
         let changed_again: bool = client.perform_action(id.clone(), UserAction::PromoteToAdmin).await.unwrap();
         assert!(!changed_again);
+
+        // 4. Update
+        let patch = SimpleUserPatch { name: Some("Bob".into()) };
+        let updated_user = client.update(id.clone(), patch).await.unwrap();
+        assert_eq!(updated_user.name, "Bob");
+
+        // 5. Delete
+        client.delete(id.clone()).await.unwrap();
+        let deleted_user = client.get(id.clone()).await.unwrap();
+        assert!(deleted_user.is_none());
     }
 }

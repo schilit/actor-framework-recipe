@@ -8,7 +8,7 @@ impl Entity for User {
     type Action = (); 
     type ActionResult = ();
 
-    fn id(&self) -> &String { &self.id }
+    // fn id(&self) -> &String { &self.id }
 
     fn from_create(id: String, payload: UserCreate) -> Result<Self, String> {
         Ok(Self {

@@ -1,135 +1,95 @@
-# Actor Recipe for Rust
+# Actor Framework Recipe 🦀
 
-[![CI](https://github.com/schilit/actor-recipe/actions/workflows/ci.yml/badge.svg)](https://github.com/schilit/actor-recipe/actions/workflows/ci.yml)
-[![Documentation](https://github.com/schilit/actor-recipe/actions/workflows/docs.yml/badge.svg)](https://schilit.github.io/actor-recipe/)
+> **A production-ready, type-safe Actor Model implementation in Rust.**
 
-A recipe for building actor systems with minimal boilerplate and good observability.
+This recipe demonstrates how to build a robust actor system using Tokio, leveraging Rust's type system to eliminate boilerplate and runtime errors. It is designed as a learning resource for engineers moving from "making it work" to "making it scalable and maintainable."
 
-## Overview
+## 🏗 Architecture
 
-This project demonstrates a complete actor system implementation in Rust, featuring:
+The system is built on three core pillars: **Type Safety**, **Separation of Concerns**, and **Developer Experience**.
 
-- **80% less boilerplate** - Macro-generated client methods with automatic error handling
-- **Professional observability** - Request correlation across actors with timing
-- **Clean architecture** - Domain-specific actors with clear separation of concerns
-- **Type-safe error handling** - Domain-specific error types (UserError, ProductError, OrderError)
-- **Test-friendly** - Test-only messages for inspecting internal actor state
-- **Production-ready** - Error handling, graceful shutdown, and scaling patterns
+### 1. The Core Abstraction (`src/actor_framework.rs`)
+Instead of writing ad-hoc loops for every actor, we define a generic `ResourceActor<T>`.
+-   **`Entity` Trait**: Defines *what* your actor manages (State).
+-   **`ResourceActor`**: Defines *how* it runs (Runtime).
+-   **`ResourceClient`**: Defines *how* you talk to it (Interface).
 
-## Architecture
+**Why?** This separates the *business logic* (your entity) from the *plumbing* (channels, message loops, error handling).
 
-The system consists of three main actor types:
+### 2. The Orchestrator (`src/app_system/`)
+Actors don't exist in a vacuum. The `OrderSystem` acts as the "dependency injection container" and lifecycle manager.
+-   It spins up all actors (`User`, `Product`, `Order`).
+-   It wires them together (passing `UserClient` to `OrderClient`).
+-   It handles graceful shutdown.
 
-### Sub-Actors (Domain-Specific)
-- **[UserService](src/actor_recipe.rs#L286)** - Manages user data (create, get, update, list)
-- **[ProductService](src/actor_recipe.rs#L519)** - Handles products and inventory (get, check stock, reserve)
+### 3. The Clients (`src/clients/`)
+We don't expose raw message passing to the rest of the app. Instead, we wrap `ResourceClient` in domain-specific clients (e.g., `UserClient`).
+-   **Macros**: We use `impl_basic_client!` to generate standard CRUD methods, keeping code DRY.
+-   **Typed Errors**: We map generic framework errors to domain errors (`UserError`), so callers know exactly what went wrong.
 
-### Root Actor (Orchestrator)
-- **[OrderService](src/actor_recipe.rs#L709)** - Coordinates user and product services to create orders
+---
 
-### System Coordinator
-- **[OrderSystem](src/actor_recipe.rs#L916)** - Manages lifecycle, dependency injection, and graceful shutdown
+## 🚀 Core Concepts
 
-## Key Features
+### Generics: The Power of `T`
+You'll see `ResourceActor<T: Entity>` everywhere. This means "I can be an actor for *anything*, as long as it behaves like an Entity."
+-   **Benefit**: We wrote the message processing loop **once**, and it works for Users, Products, and Orders.
+-   **Trade-off**: The code looks more complex initially, but it saves thousands of lines of duplicate code in the long run.
 
-### Terminology
-This implementation uses business-friendly terminology:
-- **Service** (e.g., `UserService`) = Actor
-- **Client** (e.g., `UserClient`) = Actor Reference/Handle
+### Macros: Reducing Boilerplate
+Check out `src/clients/macros.rs`. We use `impl_basic_client!` to automatically write `get_user`, `delete_user`, etc.
+-   **How it works**: It takes the type (`User`) and the error (`UserError`) and generates the implementation at compile time.
+-   **Pro Tip**: Use `cargo expand` to see what the macro generates!
 
-### Macro-Generated Clients
-The [`client_method!`](src/actor_recipe.rs#L97) macro eliminates boilerplate for actor communication:
+### Mocking: Testing without Pain
+Testing actors can be hard because they are asynchronous. We solved this in `src/mock_framework.rs`.
+-   **`create_mock_client`**: Gives you a real `ResourceClient` but connected to a test channel, not a real actor.
+-   **`expect_...` helpers**: Allow you to intercept requests in your test and return fake responses.
+-   **See**: `src/integration_tests.rs` for a real example.
 
-```rust
-// This generates a complete client method with tracing:
-client_method!(UserClient => fn get_user(id: String) -> Option<User> as UserRequest::GetUser);
+---
 
-// Equivalent to writing 15+ lines of boilerplate code manually
-```
+## 📂 Project Structure
 
-### Comprehensive Tracing
-All operations are automatically traced with structured logging:
-
-```
-INFO user_creation: Creating test user
-DEBUG create_user{}: Sending request
-DEBUG handle_create_user{user_name="Alice" user_email="alice@example.com"}: Processing create_user request
-INFO handle_create_user{user_name="Alice" user_email="alice@example.com"}: User created successfully user_id="user_1"
-```
-
-### Handler Patterns
-Multiple patterns for different operation types:
-- **[Sync handlers](src/actor_recipe.rs#L354)** - Fast, in-memory operations
-- **[Async handlers](src/actor_recipe.rs#L401)** - I/O operations with validation
-- **[Background handlers](src/actor_recipe.rs#L1101)** - Task owns response channel
-- **[Orchestration handlers](src/actor_recipe.rs#L778)** - Coordinate multiple sub-actors
-
-## Usage
-
-### Running the Example
-
-```bash
-# Basic run
-cargo run
-
-# With debug logging
-RUST_LOG=debug cargo run
-
-# With warning level only
-RUST_LOG=warn cargo run
-```
-
-### Using in Your Code
-
-```rust
-// Create the entire order system
-let system = OrderSystem::new();
-
-// Create a user (flows to UserService)
-let user = User::new("Alice", "alice@example.com");
-let user_id = system.user_client.create_user(user).await?;
-
-let order = Order::new("order_1", user_id, "p1", 5, 50.0);
-
-// Process order (orchestrates UserService + ProductService, fails - no products in demo)
-match system.order_client.create_order(order).await {
-    Ok(order_id) => println!("Order created: {}", order_id),
-    Err(e) => println!("Order failed (expected): {}", e),
-}
-
-// Shutdown gracefully
-system.shutdown().await?;
-```
-
-### Generating Documentation
-
-```bash
-# Generate and open documentation
-cargo doc --open
-```
-
-## Project Structure
-
-```
+```text
 src/
-└── actor_recipe.rs    # Complete implementation with extensive documentation
+├── actor_framework.rs   # 🧠 The Brain: Generic Actor & Client implementation
+├── mock_framework.rs    # 🧪 The Lab: Utilities for mocking actors in tests
+├── main.rs              # 🏁 Entry Point: Runs the demo application
+├── clients/             # 🔌 The Plugs: Type-safe wrappers for actors
+│   ├── macros.rs        #    - Macros to generate client code
+│   └── ...
+├── domain/              # 📦 The Data: Pure data structures (User, Product, Order)
+├── app_system/          # 🎼 The Conductor: System orchestration & shutdown
+├── user_actor/          # 👤 User Domain Logic
+├── product_actor/       # 📦 Product Domain Logic
+└── integration_tests.rs # ✅ End-to-End Tests
 ```
 
-The single file contains:
-- **[Domain types](src/actor_recipe.rs#L122)** (User, Product, Order)
-- **[Message enums](src/actor_recipe.rs#L190)** for typed communication
-- **[Service implementations](src/actor_recipe.rs#L286)** with tracing
-- **[Client generation macros](src/actor_recipe.rs#L97)**
-- **[System coordination](src/actor_recipe.rs#L916)**
-- **[Test-only messages](src/actor_recipe.rs#L471)** for internal state inspection
-- **[Usage examples and patterns](src/actor_recipe.rs#L1238)**
+## 🛠 Usage
 
-## Dependencies
+### Run the Demo
+```bash
+# Run with info logs
+RUST_LOG=info cargo run
 
-- `tokio` - Async runtime with full features
-- `tracing` - Structured logging
-- `tracing-subscriber` - Log formatting and filtering
+# Run with debug logs to see the actor internals
+RUST_LOG=debug cargo run
+```
 
-## License
+### Run Tests
+```bash
+cargo test
+```
 
-This is a reference implementation and recipe - use it as a foundation for your own actor systems.
+---
+
+## 👩‍💻 Architecture Notes
+
+1.  **Error Handling**: Notice `FrameworkError` vs `UserError`. We distinguish between "The actor system broke" (Framework) and "The user doesn't exist" (Domain). This is crucial for reliable systems.
+2.  **Concurrency**: Each `ResourceActor` runs in its own Tokio task. They process messages sequentially (no locks needed for internal state!), but multiple actors run in parallel.
+3.  **Observability**: We use `tracing` everywhere. In a distributed system, logs without correlation IDs are useless. This framework passes context automatically.
+
+---
+
+*Built with ❤️ for the Rust community.*

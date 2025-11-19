@@ -1,5 +1,6 @@
 #[derive(Debug, Clone)]
 pub struct Product {
+    #[allow(dead_code)]
     pub id: String,
     pub name: String,
     pub price: f64,

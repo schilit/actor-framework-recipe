@@ -1,22 +1,22 @@
 mod domain;
-mod messages;
-mod error;
 mod clients;
-mod actors;
-mod system;
+
+mod app_system;
 
 #[cfg(test)]
-mod mock_test;
+mod mock_framework;
+#[cfg(test)]
+mod integration_tests;
 
 mod actor_framework;
-mod user;
-mod product;
+mod user_actor;
+mod product_actor;
 
 
 
 use tracing::{error, info, Instrument};
-use crate::domain::{User, Order};
-use crate::system::{OrderSystem, setup_tracing};
+use crate::domain::{User, Order, Product};
+use crate::app_system::{OrderSystem, setup_tracing};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -42,8 +42,20 @@ async fn main() -> Result<(), String> {
 
     info!(user_id = %user_id, "User created successfully");
 
+    // Create test product
+    let product = Product::new("temp_id", "Test Product", 100.0, 10);
+    let product_id = async {
+        info!("Creating test product");
+        system.product_client.create_product(product).await
+            .map_err(|e| e.to_string())
+    }.await?;
+
+    info!(product_id = %product_id, "Product created successfully");
+
     // Create test order - this will flow through multiple actors
-    let order = Order::new("order_1", user_id, "p1", 5, 50.0);
+    // Note: The ID passed to Order::new is ignored by the system during creation, 
+    // as the system generates a new ID.
+    let order = Order::new("temp_order_id", user_id, product_id, 5, 50.0);
 
     let span = tracing::info_span!("order_processing");
     let order_result = async {
@@ -56,7 +68,7 @@ async fn main() -> Result<(), String> {
     match order_result {
         Ok(order_id) => info!(order_id = %order_id, "Order processed successfully"),
         Err(e) => {
-            error!(error = %e, "Order processing failed (expected - no test products in stock)")
+            error!(error = %e, "Order processing failed")
         }
     }
 

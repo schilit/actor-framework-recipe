@@ -10,7 +10,7 @@ impl Entity for Product {
     type Action = ProductAction;
     type ActionResult = ProductActionResult;
 
-    fn id(&self) -> &String { &self.id }
+    // fn id(&self) -> &String { &self.id }
 
     fn from_create(id: String, payload: ProductCreate) -> Result<Self, String> {
         Ok(Self {

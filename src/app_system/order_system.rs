@@ -1,9 +1,7 @@
-use tokio::sync::mpsc;
 use tracing::{info, error};
 use crate::clients::{OrderClient, UserClient, ProductClient};
-use crate::actors::OrderService;
 use crate::actor_framework::ResourceActor;
-use crate::domain::{User, Product};
+use crate::domain::{User, Product, Order};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -38,9 +36,16 @@ impl OrderSystem {
         let product_client = ProductClient::new(product_resource_client);
         let product_handle = tokio::spawn(product_actor.run());
 
-        // 3. Setup Order Service (Legacy)
-        let (order_service, order_client) = OrderService::new(32, user_client.clone(), product_client.clone());
-        let order_handle = tokio::spawn(order_service.run());
+        // 3. Setup Order Service (Refactored to ResourceActor)
+        let order_id_counter = Arc::new(AtomicU64::new(1));
+        let next_order_id = move || {
+            let id = order_id_counter.fetch_add(1, Ordering::SeqCst);
+            format!("order_{}", id)
+        };
+
+        let (order_actor, order_resource_client) = ResourceActor::<Order>::new(32, next_order_id);
+        let order_client = OrderClient::new(order_resource_client, user_client.clone(), product_client.clone());
+        let order_handle = tokio::spawn(order_actor.run());
 
         Self {
             order_client,
@@ -71,10 +76,4 @@ impl OrderSystem {
         info!("System shutdown complete.");
         Ok(())
     }
-}
-
-pub fn setup_tracing() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
 }
