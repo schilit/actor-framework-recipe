@@ -1,3 +1,5 @@
+//! Product-specific domain logic, including stock management actions.
+
 mod dtos;
 mod actions;
 mod entity;

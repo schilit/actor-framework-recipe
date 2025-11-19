@@ -74,6 +74,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
 // 2. THE GENERIC MESSAGES & ERRORS
 // =============================================================================
 
+/// Errors that can occur within the actor framework itself.
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum FrameworkError {
     #[error("Actor closed")]
@@ -86,8 +87,10 @@ pub enum FrameworkError {
     Custom(String),
 }
 
+/// Type alias for the one-shot response channel used by actors.
 pub type Response<T> = oneshot::Sender<Result<T, FrameworkError>>;
 
+/// Internal message type sent to the actor to request operations.
 #[derive(Debug)]
 pub enum ResourceRequest<T: Entity> {
     Create {
@@ -213,6 +216,7 @@ impl<T: Entity> ResourceActor<T> {
 // 4. THE GENERIC CLIENT
 // =============================================================================
 
+/// A type-safe client for interacting with a `ResourceActor`.
 #[derive(Clone)]
 pub struct ResourceClient<T: Entity> {
     sender: mpsc::Sender<ResourceRequest<T>>,

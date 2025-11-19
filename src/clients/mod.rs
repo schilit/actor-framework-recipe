@@ -1,3 +1,5 @@
+//! Type-safe wrappers around [`ResourceClient`](crate::actor_framework::ResourceClient).
+
 #[macro_use]
 mod macros;
 pub mod user_client;
