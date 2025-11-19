@@ -1,3 +1,25 @@
+//! # Actor Framework Recipe
+//!
+//! A reference implementation of a type-safe, generic Actor Framework in Rust.
+//!
+//! ## 🚀 Core Components
+//!
+//! - **[actor_framework]**: The heart of the system. Contains the generic [`ResourceActor`](actor_framework::ResourceActor) and [`Entity`](actor_framework::Entity) trait.
+//! - **[domain]**: Pure data structures ([`User`](domain::User), [`Product`](domain::Product), [`Order`](domain::Order)) that implement the `Entity` trait.
+//! - **[clients]**: Type-safe wrappers (e.g., [`UserClient`](clients::UserClient)) that hide the complexity of message passing.
+//! - **[app_system]**: Orchestration layer that manages the lifecycle of actors.
+//!
+//! ## 📚 Quick Start
+//!
+//! The application entry point is in [`main`](main), which demonstrates:
+//! 1.  Setting up the [`OrderSystem`](app_system::OrderSystem).
+//! 2.  Creating a [`User`](domain::User) and [`Product`](domain::Product).
+//! 3.  Placing an [`Order`](domain::Order).
+//!
+//! ## 🧪 Testing
+//!
+//! See [`mock_framework`] for utilities to test clients without spawning full actors.
+
 mod domain;
 mod clients;
 

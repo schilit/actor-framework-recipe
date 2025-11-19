@@ -1,3 +1,14 @@
+//! # Core Actor Framework
+//!
+//! This module defines the generic building blocks for the actor system.
+//!
+//! ## Key Types
+//!
+//! - [`Entity`]: The trait that all domain objects must implement.
+//! - [`ResourceActor`]: The generic actor that manages entities.
+//! - [`ResourceClient`]: The generic client for communicating with actors.
+//! - [`FrameworkError`]: Common errors (e.g., ActorClosed, NotFound).
+
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::fmt::{Debug, Display};
