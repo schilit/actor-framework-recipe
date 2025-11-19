@@ -1,3 +1,4 @@
+/// Represents a product in the inventory.
 #[derive(Debug, Clone)]
 pub struct Product {
     #[allow(dead_code)]

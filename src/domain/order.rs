@@ -1,5 +1,6 @@
 use crate::actor_framework::Entity;
 
+/// Represents a customer order.
 #[derive(Debug, Clone)]
 pub struct Order {
     #[allow(dead_code)]
@@ -12,6 +13,7 @@ pub struct Order {
     pub status: String,
 }
 
+/// Payload for creating a new order.
 #[derive(Debug)]
 pub struct OrderCreate {
     pub user_id: String,
