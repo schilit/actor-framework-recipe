@@ -38,7 +38,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
     type CreateParams: Send + Sync + Debug;
     
     /// The data required to update an existing instance.
-    type Patch: Send + Sync + Debug;
+    type UpdateParams: Send + Sync + Debug;
     
     // --- New: Custom Actions ---
     /// Enum representing domain-specific operations (e.g., `ReserveStock`).
@@ -56,7 +56,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
     // Default implementations do nothing (Ok(())), but can be overridden.
 
     fn on_create(&mut self) -> Result<(), String> { Ok(()) }
-    fn on_update(&mut self, patch: Self::Patch) -> Result<(), String>;
+    fn on_update(&mut self, update: Self::UpdateParams) -> Result<(), String>;
     fn on_delete(&self) -> Result<(), String> { Ok(()) }
 
     // --- Action Handler ---
@@ -103,7 +103,7 @@ pub enum ResourceRequest<T: Entity> {
     },
     Update {
         id: T::Id,
-        patch: T::Patch,
+        update: T::UpdateParams,
         respond_to: Response<T>,
     },
     #[allow(dead_code)]
@@ -175,9 +175,9 @@ impl<T: Entity> ResourceActor<T> {
                     let item = self.store.get(&id).cloned();
                     let _ = respond_to.send(Ok(item));
                 }
-                ResourceRequest::Update { id, patch, respond_to } => {
+                ResourceRequest::Update { id, update, respond_to } => {
                     if let Some(item) = self.store.get_mut(&id) {
-                        if let Err(e) = item.on_update(patch) {
+                        if let Err(e) = item.on_update(update) {
                             let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                             continue;
                         }
@@ -241,9 +241,9 @@ impl<T: Entity> ResourceClient<T> {
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
-    pub async fn update(&self, id: T::Id, patch: T::Patch) -> Result<T, FrameworkError> {
+    pub async fn update(&self, id: T::Id, update: T::UpdateParams) -> Result<T, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
-        self.sender.send(ResourceRequest::Update { id, patch, respond_to })
+        self.sender.send(ResourceRequest::Update { id, update, respond_to })
             .await.map_err(|_| FrameworkError::ActorClosed)?;
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
@@ -290,7 +290,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct SimpleUserPatch {
+    struct SimpleUserUpdate {
         name: Option<String>,
     }
 
@@ -305,7 +305,7 @@ mod tests {
     impl Entity for SimpleUser {
         type Id = String;
         type CreateParams = SimpleUserCreate;
-        type Patch = SimpleUserPatch;
+        type UpdateParams = SimpleUserUpdate;
         type Action = UserAction;
         type ActionResult = bool;
 
@@ -320,8 +320,8 @@ mod tests {
             })
         }
 
-        fn on_update(&mut self, patch: SimpleUserPatch) -> Result<(), String> {
-            if let Some(name) = patch.name {
+        fn on_update(&mut self, update: SimpleUserUpdate) -> Result<(), String> {
+            if let Some(name) = update.name {
                 self.name = name;
             }
             Ok(())
@@ -377,8 +377,8 @@ mod tests {
         assert!(!changed_again);
 
         // 4. Update
-        let patch = SimpleUserPatch { name: Some("Bob".into()) };
-        let updated_user = client.update(id.clone(), patch).await.unwrap();
+        let update = SimpleUserUpdate { name: Some("Bob".into()) };
+        let updated_user = client.update(id.clone(), update).await.unwrap();
         assert_eq!(updated_user.name, "Bob");
 
         // 5. Delete

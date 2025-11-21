@@ -11,7 +11,7 @@ use crate::domain::{Order, OrderCreate};
 impl Entity for Order {
     type Id = String;
     type CreateParams = OrderCreate;
-    type Patch = (); // No updates for now
+    type UpdateParams = (); // No updates for now
     type Action = (); // No custom actions for now
     type ActionResult = ();
 

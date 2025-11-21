@@ -6,12 +6,12 @@
 //! See the [trait implementation on `User`](crate::domain::User#impl-Entity-for-User) for method documentation.
 
 use crate::actor_framework::Entity;
-use crate::domain::{User, UserCreate, UserPatch};
+use crate::domain::{User, UserCreate, UserUpdate};
 
 impl Entity for User {
     type Id = String;
     type CreateParams = UserCreate;
-    type Patch = UserPatch;
+    type UpdateParams = UserUpdate;
     type Action = (); 
     type ActionResult = ();
 
@@ -38,11 +38,11 @@ impl Entity for User {
     /// # Fields Updated
     /// - `name`: User's display name
     /// - `email`: User's email address
-    fn on_update(&mut self, patch: UserPatch) -> Result<(), String> {
-        if let Some(name) = patch.name {
+    fn on_update(&mut self, update: UserUpdate) -> Result<(), String> {
+        if let Some(name) = update.name {
             self.name = name;
         }
-        if let Some(email) = patch.email {
+        if let Some(email) = update.email {
             self.email = email;
         }
         Ok(())
