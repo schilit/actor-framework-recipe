@@ -1,6 +1,6 @@
-//! Entity trait implementation for [`Order`](crate::domain::Order).
+//! Entity trait implementation for [`Order`].
 //!
-//! This module contains the [`Entity`](crate::actor_framework::Entity) trait implementation
+//! This module contains the [`Entity`] trait implementation
 //! that enables `Order` to be managed by the generic [`ResourceActor`](crate::actor_framework::ResourceActor).
 //!
 //! See the [trait implementation on `Order`](crate::domain::Order#impl-Entity-for-Order) for method documentation.

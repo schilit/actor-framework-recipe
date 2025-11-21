@@ -1,6 +1,6 @@
-//! Entity trait implementation for [`User`](crate::domain::User).
+//! Entity trait implementation for [`User`].
 //!
-//! This module contains the [`Entity`](crate::actor_framework::Entity) trait implementation
+//! This module contains the [`Entity`] trait implementation
 //! that enables `User` to be managed by the generic [`ResourceActor`](crate::actor_framework::ResourceActor).
 //!
 //! See the [trait implementation on `User`](crate::domain::User#impl-Entity-for-User) for method documentation.

@@ -2,9 +2,9 @@ name: Generate and Deploy Documentation
 
 on:
   push:
-    branches: [ "framework-refactor" ]
+    branches: [ "framework-refactor", "main" ]
   pull_request:
-    branches: [ "framework-refactor" ]
+    branches: [ "framework-refactor", "main" ]
   workflow_dispatch:
 
 permissions:

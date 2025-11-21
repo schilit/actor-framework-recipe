@@ -1,6 +1,6 @@
-//! Entity trait implementation for [`Product`](crate::domain::Product).
+//! Entity trait implementation for [`Product`].
 //!
-//! This module contains the [`Entity`](crate::actor_framework::Entity) trait implementation
+//! This module contains the [`Entity`] trait implementation
 //! that enables `Product` to be managed by the generic [`ResourceActor`](crate::actor_framework::ResourceActor).
 //!
 //! Includes support for custom actions like stock checking and reservation.
