@@ -10,11 +10,11 @@ impl Entity for User {
 
     // fn id(&self) -> &String { &self.id }
 
-    fn from_create(id: String, payload: UserCreate) -> Result<Self, String> {
+    fn from_create_params(id: String, params: UserCreate) -> Result<Self, String> {
         Ok(Self {
             id,
-            name: payload.name,
-            email: payload.email,
+            name: params.name,
+            email: params.email,
         })
     }
 

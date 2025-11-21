@@ -6,8 +6,11 @@ pub enum ProductAction {
     ReserveStock(u32),
 }
 
+/// Results from ProductActions - variants match 1:1 with ProductAction
 #[derive(Debug, Clone)]
 pub enum ProductActionResult {
-    StockLevel(#[allow(dead_code)] u32),
-    Reserved,
+    /// Result from CheckStock action - returns the current stock level
+    CheckStock(u32),
+    /// Result from ReserveStock action - returns unit on success
+    ReserveStock(()),
 }

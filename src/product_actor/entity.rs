@@ -1,6 +1,5 @@
 use crate::actor_framework::Entity;
-use crate::domain::Product;
-use super::dtos::{ProductCreate, ProductPatch};
+use crate::domain::{Product, ProductCreate, ProductPatch};
 use super::actions::{ProductAction, ProductActionResult};
 
 impl Entity for Product {
@@ -12,12 +11,12 @@ impl Entity for Product {
 
     // fn id(&self) -> &String { &self.id }
 
-    fn from_create(id: String, payload: ProductCreate) -> Result<Self, String> {
+    fn from_create_params(id: String, params: ProductCreate) -> Result<Self, String> {
         Ok(Self {
             id,
-            name: payload.name,
-            price: payload.price,
-            quantity: payload.quantity,
+            name: params.name,
+            price: params.price,
+            quantity: params.quantity,
         })
     }
 
@@ -34,12 +33,12 @@ impl Entity for Product {
     fn handle_action(&mut self, action: ProductAction) -> Result<ProductActionResult, String> {
         match action {
             ProductAction::CheckStock => {
-                Ok(ProductActionResult::StockLevel(self.quantity))
+                Ok(ProductActionResult::CheckStock(self.quantity))
             }
             ProductAction::ReserveStock(amount) => {
                 if self.quantity >= amount {
                     self.quantity -= amount;
-                    Ok(ProductActionResult::Reserved)
+                    Ok(ProductActionResult::ReserveStock(()))
                 } else {
                     Err(format!("Insufficient stock: {} available, {} requested", self.quantity, amount))
                 }

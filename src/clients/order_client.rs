@@ -1,6 +1,6 @@
 use tracing::{error, info, instrument};
-use crate::domain::{Order, OrderCreate};
-use crate::app_system::OrderError;
+use crate::domain::Order;
+use crate::order_actor::OrderError;
 use crate::actor_framework::ResourceClient;
 use crate::clients::{UserClient, ProductClient};
 
@@ -67,7 +67,7 @@ impl OrderClient {
         info!("Stock reserved successfully");
 
         // Step 4: Create order in ResourceActor
-        let payload = OrderCreate {
+        let payload = crate::domain::OrderCreate {
             user_id: order.user_id,
             product_id: order.product_id,
             quantity: order.quantity,

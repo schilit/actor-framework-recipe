@@ -49,7 +49,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
 
     /// Construct the full Entity from the ID and Payload.
     /// This is called by the actor when it receives a `Create` request.
-    fn from_create(id: Self::Id, payload: Self::CreatePayload) -> Result<Self, String>;
+    fn from_create_params(id: Self::Id, params: Self::CreatePayload) -> Result<Self, String>;
 
     // --- Lifecycle Hooks ---
     // These allow the entity to execute logic during lifecycle events.
@@ -159,7 +159,7 @@ impl<T: Entity> ResourceActor<T> {
             match msg {
                 ResourceRequest::Create { payload, respond_to } => {
                     let id = (self.next_id_fn)();
-                    match T::from_create(id.clone(), payload) {
+                    match T::from_create_params(id.clone(), payload) {
                         Ok(mut item) => {
                             if let Err(e) = item.on_create() {
                                 let _ = respond_to.send(Err(FrameworkError::Custom(e)));
@@ -311,10 +311,10 @@ mod tests {
 
         // fn id(&self) -> &String { &self.id }
 
-        fn from_create(id: String, payload: SimpleUserCreate) -> Result<Self, String> {
+        fn from_create_params(id: String, params: SimpleUserCreate) -> Result<Self, String> {
             Ok(Self {
                 id,
-                name: payload.name,
+                name: params.name,
                 is_admin: false,
                 created_at: 100,
             })

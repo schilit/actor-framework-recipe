@@ -43,7 +43,7 @@ mod tests {
             ProductAction::ReserveStock(qty) => assert_eq!(qty, 5),
             _ => panic!("Unexpected action: {:?}", action),
         }
-        responder.send(Ok(ProductActionResult::Reserved)).unwrap();
+        responder.send(Ok(ProductActionResult::ReserveStock(()))).unwrap();
 
         // Expect Order Create
         use crate::mock_framework::expect_create;

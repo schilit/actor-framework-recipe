@@ -6,6 +6,8 @@ This recipe demonstrates how to build a robust actor system using Tokio, leverag
 
 ## 🏗 Architecture
 
+[View Architecture Dependency Graph](architecture.md)
+
 The system is built on three core pillars: **Type Safety**, **Separation of Concerns**, and **Developer Experience**.
 
 ### 1. The Core Abstraction (`src/actor_framework.rs`)
@@ -63,6 +65,7 @@ src/
 ├── app_system/          # 🎼 The Conductor: System orchestration & shutdown
 ├── user_actor/          # 👤 User Domain Logic
 ├── product_actor/       # 📦 Product Domain Logic
+├── order_actor/         # 🛒 Order Domain Logic
 └── integration_tests.rs # ✅ End-to-End Tests
 ```
 

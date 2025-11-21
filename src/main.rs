@@ -33,7 +33,7 @@ mod integration_tests;
 mod actor_framework;
 mod user_actor;
 mod product_actor;
-
+mod order_actor;
 
 
 use tracing::{error, info, Instrument};

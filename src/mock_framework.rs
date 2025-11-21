@@ -1,4 +1,3 @@
-use crate::actor_framework::{Entity, ResourceClient, ResourceRequest, FrameworkError};
 //! # Mock Framework
 //!
 //! Utilities for testing clients in isolation.
@@ -6,6 +5,7 @@ use crate::actor_framework::{Entity, ResourceClient, ResourceRequest, FrameworkE
 //! Use [`create_mock_client`] to get a client and a receiver.
 //! Then use helpers like [`expect_create`] or [`expect_action`] to assert behavior.
 
+use crate::actor_framework::{Entity, ResourceClient, ResourceRequest, FrameworkError};
 use tokio::sync::mpsc;
 
 /// Creates a mock client and a receiver for asserting requests.
