@@ -1,5 +1,5 @@
 use tracing::{debug, instrument};
-use crate::domain::{User, UserCreate, UserPatch};
+use crate::domain::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
 use crate::actor_framework::ResourceClient;
 
@@ -28,7 +28,7 @@ impl UserClient {
     // New method utilizing the generic update
     #[instrument(skip(self))]
     #[allow(dead_code)]
-    pub async fn update_user(&self, id: String, patch: UserPatch) -> Result<User, UserError> {
+    pub async fn update_user(&self, id: String, update: UserUpdate) -> Result<User, UserError> {
         debug!("Sending request");
         self.inner.update(id, patch).await.map_err(|e| UserError::ActorCommunicationError(e.to_string()))
     }

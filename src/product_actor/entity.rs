@@ -8,13 +8,13 @@
 //! See the [trait implementation on `Product`](crate::domain::Product#impl-Entity-for-Product) for method documentation.
 
 use crate::actor_framework::Entity;
-use crate::domain::{Product, ProductCreate, ProductPatch};
+use crate::domain::{Product, ProductCreate, ProductUpdate};
 use super::actions::{ProductAction, ProductActionResult};
 
 impl Entity for Product {
     type Id = String;
     type CreateParams = ProductCreate;
-    type Patch = ProductPatch;
+    type UpdateParams = ProductUpdate;
     type Action = ProductAction;
     type ActionResult = ProductActionResult;
 
@@ -42,11 +42,11 @@ impl Entity for Product {
     /// # Fields Updated
     /// - `price`: Product price
     /// - `quantity`: Available stock quantity
-    fn on_update(&mut self, patch: ProductPatch) -> Result<(), String> {
-        if let Some(price) = patch.price {
+    fn on_update(&mut self, update: ProductUpdate) -> Result<(), String> {
+        if let Some(price) = update.price {
             self.price = price;
         }
-        if let Some(quantity) = patch.quantity {
+        if let Some(quantity) = update.quantity {
             self.quantity = quantity;
         }
         Ok(())

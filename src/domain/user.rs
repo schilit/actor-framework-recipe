@@ -15,7 +15,9 @@ pub struct UserCreate {
 
 /// Payload for updating an existing user.
 #[derive(Debug, Clone)]
-pub struct UserPatch {
+/// DTOs for User updates.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserUpdate {
     pub name: Option<String>,
     pub email: Option<String>,
 }

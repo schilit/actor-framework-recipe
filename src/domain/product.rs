@@ -35,7 +35,9 @@ pub struct ProductCreate {
 }
 
 #[derive(Debug, Clone)]
-pub struct ProductPatch {
+/// DTOs for Product updates.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProductUpdate {
     pub price: Option<f64>,
     pub quantity: Option<u32>,
 }
