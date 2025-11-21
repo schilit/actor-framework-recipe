@@ -23,9 +23,9 @@ pub fn create_mock_client<T: Entity>(buffer_size: usize) -> (ResourceClient<T>, 
 }
 
 /// Helper to verify that the next message is a Create request
-pub async fn expect_create<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::CreatePayload, tokio::sync::oneshot::Sender<Result<T::Id, FrameworkError>>)> {
+pub async fn expect_create<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::CreateParams, tokio::sync::oneshot::Sender<Result<T::Id, FrameworkError>>)> {
     match receiver.recv().await {
-        Some(ResourceRequest::Create { payload, respond_to }) => Some((payload, respond_to)),
+        Some(ResourceRequest::Create { params, respond_to }) => Some((params, respond_to)),
         _ => None,
     }
 }
