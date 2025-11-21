@@ -10,6 +10,9 @@ use crate::domain::{User, UserCreate, UserUpdate};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
+/// Marker constant to verify Entity trait implementation exists at compile time.
+/// This is used by the framework to ensure proper trait implementation.
+#[allow(dead_code)]
 pub const ENTITY_IMPL_PRESENT: bool = true;
 
 impl Entity for User {
@@ -22,7 +25,7 @@ impl Entity for User {
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new User from creation parameters.
-    fn from_create_params(id: String, params: UserCreate) -> Result<Self, String> {
+    fn from_create_params(_id: String, params: UserCreate) -> Result<Self, String> {
         Ok(Self::new(params.name, params.email))
     }
 

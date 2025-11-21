@@ -23,7 +23,7 @@
 mod domain;
 mod clients;
 
-mod runtime;
+mod lifecycle;
 
 mod framework;
 mod user_actor;
@@ -36,7 +36,7 @@ mod integration_tests;
 
 use tracing::{error, info, Instrument};
 use crate::domain::{User, Order, Product};
-use crate::runtime::{OrderSystem, setup_tracing};
+use crate::lifecycle::{OrderSystem, setup_tracing};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

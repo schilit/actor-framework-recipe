@@ -13,6 +13,8 @@ use super::actions::{ProductAction, ProductActionResult};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
+/// Marker constant to verify Entity trait implementation exists at compile time.
+#[allow(dead_code)]
 pub const ENTITY_IMPL_PRESENT: bool = true;
 
 impl Entity for Product {

@@ -1,10 +1,10 @@
-use tracing::{error, info, instrument};
+use tracing::{error, info, instrument, debug};
+use crate::clients::{UserClient, ProductClient};
 use crate::domain::Order;
 use crate::order_actor::OrderError;
 use crate::framework::{ResourceClient, FrameworkError};
-use crate::clients::traits::DomainClient;
 use async_trait::async_trait;
-use crate::clients::{UserClient, ProductClient};
+use crate::clients::traits::DomainClient;
 
 /// Client for interacting with the Order actor.
 ///
@@ -30,8 +30,9 @@ impl OrderClient {
         }
     }
 
-    #[instrument(skip(self))]
+    #[instrument(skip(self, order))]
     pub async fn create_order(&self, order: Order) -> Result<String, OrderError> {
+        debug!(?order, "create_order called");
         info!("Processing create_order request (Client Side)");
 
         // Step 1: Validate user

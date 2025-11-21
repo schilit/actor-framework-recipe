@@ -14,7 +14,11 @@ use std::sync::{Arc, Mutex};
 // EXPECTATION BUILDER API
 // =============================================================================
 
-/// Represents an expected operation on a mock client.
+/// Represents an expected request to the mock client.
+///
+/// This enum is used internally by `MockClient` to track what requests
+/// are expected and what responses should be returned.
+#[allow(dead_code)] // Future features: Update, Delete, Action expectations
 enum Expectation<T: Entity> {
     Get {
         id: T::Id,

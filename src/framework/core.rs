@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::fmt::{Debug, Display};
 use tokio::sync::{mpsc, oneshot};
+use tracing::{debug, info, warn};
 
 
 // =============================================================================
@@ -204,61 +205,97 @@ impl<T: Entity> ResourceActor<T> {
         (actor, client)
     }
 
+    /// Runs the actor's event loop, processing messages until the channel closes.
+    ///
+    /// This is the heart of the actor - it processes messages sequentially,
+    /// ensuring thread-safe access to the internal store without locks.
     pub async fn run(mut self) {
+        // Extract just the type name (e.g., "User" instead of "actor_recipe::domain::user::User")
+        let entity_type = std::any::type_name::<T>()
+            .split("::")
+            .last()
+            .unwrap_or("Unknown");
+        info!(entity_type, "Actor started");
+        
         while let Some(msg) = self.receiver.recv().await {
             match msg {
                 ResourceRequest::Create { params, respond_to } => {
+                    debug!(entity_type, ?params, "Create");
                     let id = (self.next_id_fn)();
+                    
                     match T::from_create_params(id.clone(), params) {
                         Ok(mut item) => {
                             if let Err(e) = item.on_create() {
+                                warn!(entity_type, error = %e, "on_create failed");
                                 let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                                 continue;
                             }
                             self.store.insert(id.clone(), item);
+                            info!(entity_type, %id, size = self.store.len(), "Created");
                             let _ = respond_to.send(Ok(id));
                         }
-                        Err(e) => { let _ = respond_to.send(Err(FrameworkError::Custom(e))); }
+                        Err(e) => {
+                            warn!(entity_type, error = %e, "Create failed");
+                            let _ = respond_to.send(Err(FrameworkError::Custom(e)));
+                        }
                     }
                 }
                 ResourceRequest::Get { id, respond_to } => {
                     let item = self.store.get(&id).cloned();
+                    let found = item.is_some();
+                    debug!(entity_type, %id, found, "Get");
                     let _ = respond_to.send(Ok(item));
                 }
                 ResourceRequest::Update { id, update, respond_to } => {
+                    debug!(entity_type, %id, ?update, "Update");
                     if let Some(item) = self.store.get_mut(&id) {
                         if let Err(e) = item.on_update(update) {
+                            warn!(entity_type, %id, error = %e, "Update failed");
                             let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                             continue;
                         }
+                        info!(entity_type, %id, "Updated");
                         let _ = respond_to.send(Ok(item.clone()));
                     } else {
+                        warn!(entity_type, %id, "Not found");
                         let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
                     }
                 }
                 ResourceRequest::Delete { id, respond_to } => {
+                    debug!(entity_type, %id, "Delete");
                     if let Some(item) = self.store.get(&id) {
                         if let Err(e) = item.on_delete() {
+                            warn!(entity_type, %id, error = %e, "on_delete failed");
                             let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                             continue;
                         }
                         self.store.remove(&id);
+                        info!(entity_type, %id, size = self.store.len(), "Deleted");
                         let _ = respond_to.send(Ok(()));
                     } else {
+                        warn!(entity_type, %id, "Not found");
                         let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
                     }
                 }
                 ResourceRequest::Action { id, action, respond_to } => {
+                    debug!(entity_type, %id, ?action, "Action");
                     if let Some(item) = self.store.get_mut(&id) {
                         let result = item.handle_action(action)
                             .map_err(FrameworkError::Custom);
+                        match &result {
+                            Ok(_) => info!(entity_type, %id, "Action ok"),
+                            Err(e) => warn!(entity_type, %id, error = %e, "Action failed"),
+                        }
                         let _ = respond_to.send(result);
                     } else {
-                         let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
+                        warn!(entity_type, %id, "Not found");
+                        let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
                     }
                 }
             }
         }
+        
+        info!(entity_type, size = self.store.len(), "Shutdown");
     }
 }
 
