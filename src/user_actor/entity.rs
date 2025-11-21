@@ -1,9 +1,16 @@
+//! Entity trait implementation for [`User`](crate::domain::User).
+//!
+//! This module contains the [`Entity`](crate::actor_framework::Entity) trait implementation
+//! that enables `User` to be managed by the generic [`ResourceActor`](crate::actor_framework::ResourceActor).
+//!
+//! See the [trait implementation on `User`](crate::domain::User#impl-Entity-for-User) for method documentation.
+
 use crate::actor_framework::Entity;
 use crate::domain::{User, UserCreate, UserPatch};
 
 impl Entity for User {
     type Id = String;
-    type CreatePayload = UserCreate;
+    type CreateParams = UserCreate;
     type Patch = UserPatch;
     type Action = (); 
     type ActionResult = ();

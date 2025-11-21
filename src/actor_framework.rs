@@ -27,7 +27,7 @@ use tokio::sync::{mpsc, oneshot};
 /// must satisfy, we can write the `ResourceActor` logic *once* and reuse it everywhere.
 /// This is "Polymorphism" in action.
 ///
-/// We use "Associated Types" (type Id, type CreatePayload, etc.) to enforce type safety.
+/// We use "Associated Types" (type Id, type CreateParams, etc.) to enforce type safety.
 /// A `User` entity requires a `UserCreate` payload, and you can't accidentally send it
 /// a `ProductCreate` payload. The compiler prevents this class of bugs entirely.
 pub trait Entity: Clone + Send + Sync + 'static {
@@ -35,7 +35,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
     type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
     
     /// The data required to create a new instance (DTO - Data Transfer Object).
-    type CreatePayload: Send + Sync + Debug;
+    type CreateParams: Send + Sync + Debug;
     
     /// The data required to update an existing instance.
     type Patch: Send + Sync + Debug;
@@ -49,7 +49,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
 
     /// Construct the full Entity from the ID and Payload.
     /// This is called by the actor when it receives a `Create` request.
-    fn from_create_params(id: Self::Id, params: Self::CreatePayload) -> Result<Self, String>;
+    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, String>;
 
     // --- Lifecycle Hooks ---
     // These allow the entity to execute logic during lifecycle events.
@@ -94,7 +94,7 @@ pub type Response<T> = oneshot::Sender<Result<T, FrameworkError>>;
 #[derive(Debug)]
 pub enum ResourceRequest<T: Entity> {
     Create {
-        payload: T::CreatePayload,
+        params: T::CreateParams,
         respond_to: Response<T::Id>,
     },
     Get {
@@ -157,9 +157,9 @@ impl<T: Entity> ResourceActor<T> {
     pub async fn run(mut self) {
         while let Some(msg) = self.receiver.recv().await {
             match msg {
-                ResourceRequest::Create { payload, respond_to } => {
+                ResourceRequest::Create { params, respond_to } => {
                     let id = (self.next_id_fn)();
-                    match T::from_create_params(id.clone(), payload) {
+                    match T::from_create_params(id.clone(), params) {
                         Ok(mut item) => {
                             if let Err(e) = item.on_create() {
                                 let _ = respond_to.send(Err(FrameworkError::Custom(e)));
@@ -227,9 +227,9 @@ impl<T: Entity> ResourceClient<T> {
         Self { sender }
     }
 
-    pub async fn create(&self, payload: T::CreatePayload) -> Result<T::Id, FrameworkError> {
+    pub async fn create(&self, params: T::CreateParams) -> Result<T::Id, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
-        self.sender.send(ResourceRequest::Create { payload, respond_to })
+        self.sender.send(ResourceRequest::Create { params, respond_to })
             .await.map_err(|_| FrameworkError::ActorClosed)?;
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
@@ -304,7 +304,7 @@ mod tests {
 
     impl Entity for SimpleUser {
         type Id = String;
-        type CreatePayload = SimpleUserCreate;
+        type CreateParams = SimpleUserCreate;
         type Patch = SimpleUserPatch;
         type Action = UserAction;
         type ActionResult = bool;
