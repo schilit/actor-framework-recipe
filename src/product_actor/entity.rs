@@ -1,15 +1,19 @@
-//! Entity trait implementation for [`Product`].
+//! Entity trait implementation for the Product domain type.
 //!
 //! This module contains the [`Entity`] trait implementation
-//! that enables `Product` to be managed by the generic [`ResourceActor`](crate::actor_framework::ResourceActor).
+//! that enables [`Product`] to be managed by the generic [`crate::actor_framework::ResourceActor`].
 //!
 //! Includes support for custom actions like stock checking and reservation.
 //!
-//! See the [trait implementation on `Product`](crate::domain::Product#impl-Entity-for-Product) for method documentation.
+//! See the trait implementation on [`Product`] for method documentation.
 
 use crate::actor_framework::Entity;
 use crate::domain::{Product, ProductCreate, ProductUpdate};
 use super::actions::{ProductAction, ProductActionResult};
+
+/// Marker constant to ensure module documentation is rendered.
+#[doc(hidden)]
+pub const ENTITY_IMPL_PRESENT: bool = true;
 
 impl Entity for Product {
     type Id = String;
@@ -21,23 +25,11 @@ impl Entity for Product {
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new Product from creation parameters.
-    ///
-    /// # Arguments
-    /// * `id` - Unique identifier for the product
-    /// * `params` - Product creation parameters containing name, price, and quantity
     fn from_create_params(id: String, params: ProductCreate) -> Result<Self, String> {
-        Ok(Self {
-            id,
-            name: params.name,
-            price: params.price,
-            quantity: params.quantity,
-        })
+        Ok(Self::new(id, params.name, params.price, params.quantity))
     }
 
-    /// Updates the product's price and/or quantity.
-    ///
-    /// # Arguments
-    /// * `patch` - Contains optional updates for price and/or quantity
+    /// Handles updates to the Product entity.
     ///
     /// # Fields Updated
     /// - `price`: Product price
@@ -52,25 +44,22 @@ impl Entity for Product {
         Ok(())
     }
 
-    /// Handles product-specific actions.
+    /// Handles custom actions for the Product entity.
     ///
     /// # Actions
-    /// - `CheckStock`: Returns the current stock level
-    /// - `ReserveStock(amount)`: Decrements stock by the specified amount
-    ///
-    /// # Errors
-    /// Returns an error if attempting to reserve more stock than available.
+    /// - `CheckStock`: Returns true if requested quantity is available
+    /// - `ReserveStock`: Decrements stock if available, returns true on success
     fn handle_action(&mut self, action: ProductAction) -> Result<ProductActionResult, String> {
         match action {
             ProductAction::CheckStock => {
                 Ok(ProductActionResult::CheckStock(self.quantity))
             }
-            ProductAction::ReserveStock(amount) => {
-                if self.quantity >= amount {
-                    self.quantity -= amount;
+            ProductAction::ReserveStock(quantity) => {
+                if self.quantity >= quantity {
+                    self.quantity -= quantity;
                     Ok(ProductActionResult::ReserveStock(()))
                 } else {
-                    Err(format!("Insufficient stock: {} available, {} requested", self.quantity, amount))
+                    Err(format!("Insufficient stock: requested {}, available {}", quantity, self.quantity))
                 }
             }
         }

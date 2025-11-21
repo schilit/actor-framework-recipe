@@ -30,6 +30,14 @@ use tokio::sync::{mpsc, oneshot};
 /// We use "Associated Types" (type Id, type CreateParams, etc.) to enforce type safety.
 /// A `User` entity requires a `UserCreate` payload, and you can't accidentally send it
 /// a `ProductCreate` payload. The compiler prevents this class of bugs entirely.
+///
+/// # Provided Methods (Hooks)
+/// This trait includes **Provided Methods** (methods with default implementations) for lifecycle hooks:
+/// - [`on_create`](Entity::on_create)
+/// - [`on_delete`](Entity::on_delete)
+///
+/// You do **not** need to implement these methods unless you want to customize behavior.
+/// The default implementation does nothing (`Ok(())`).
 pub trait Entity: Clone + Send + Sync + 'static {
     /// The unique identifier for this entity (e.g., String, Uuid, u64).
     type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
@@ -52,11 +60,33 @@ pub trait Entity: Clone + Send + Sync + 'static {
     fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, String>;
 
     // --- Lifecycle Hooks ---
-    // These allow the entity to execute logic during lifecycle events.
-    // Default implementations do nothing (Ok(())), but can be overridden.
 
+    /// Called immediately after the entity is created and initialized.
+    ///
+    /// Use this hook to perform any post-creation logic, such as logging,
+    /// sending notifications, or initializing dependent resources.
+    ///
+    /// # Default Implementation
+    /// Returns `Ok(())` (no-op).
     fn on_create(&mut self) -> Result<(), String> { Ok(()) }
+
+    /// Called when an update request is received.
+    ///
+    /// This is the primary mechanism for modifying the entity's state.
+    /// You must implement this method to apply the changes from `UpdateParams`
+    /// to the entity's fields.
+    ///
+    /// # Arguments
+    /// * `update` - The data object containing the updates to apply.
     fn on_update(&mut self, update: Self::UpdateParams) -> Result<(), String>;
+
+    /// Called immediately before the entity is removed from the system.
+    ///
+    /// Use this hook to perform cleanup tasks, such as releasing external resources,
+    /// archiving data, or notifying other parts of the system.
+    ///
+    /// # Default Implementation
+    /// Returns `Ok(())` (no-op).
     fn on_delete(&self) -> Result<(), String> { Ok(()) }
 
     // --- Action Handler ---
@@ -91,6 +121,26 @@ pub enum FrameworkError {
 pub type Response<T> = oneshot::Sender<Result<T, FrameworkError>>;
 
 /// Internal message type sent to the actor to request operations.
+///
+/// # Resource-Oriented Architecture
+/// This enum implements a **Resource-Oriented** design pattern where each actor manages a specific
+/// type of resource (the [`Entity`]). Instead of defining ad-hoc messages for every operation,
+/// we standardize around a set of lifecycle operations that apply to almost any persistent resource.
+///
+/// # The CRUD Pattern
+/// The variants of this enum map directly to standard **CRUD** (Create, Read, Update, Delete) operations,
+/// plus a custom `Action` variant for domain-specific logic that doesn't fit the CRUD model.
+///
+/// - **Create**: Lifecycle start. Uses [`Entity::CreateParams`] to initialize a new resource.
+/// - **Get (Read)**: Retrieval. Fetches the current state of the resource by ID.
+/// - **Update**: State mutation. Uses [`Entity::UpdateParams`] to modify an existing resource.
+/// - **Delete**: Lifecycle end. Removes the resource.
+/// - **Action**: Extensibility. Executes a custom [`Entity::Action`].
+///
+/// # Entity Interaction
+/// This type is generic over `T: Entity`. It uses the associated types defined in the [`Entity`] trait
+/// (like `CreateParams`, `UpdateParams`, `Action`) to ensure type safety for every operation.
+/// This guarantees that you can't send a "User Create" payload to a "Product" actor.
 #[derive(Debug)]
 pub enum ResourceRequest<T: Entity> {
     Create {

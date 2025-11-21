@@ -1,12 +1,16 @@
-//! Entity trait implementation for [`User`].
+//! Entity trait implementation for the User domain type.
 //!
 //! This module contains the [`Entity`] trait implementation
-//! that enables `User` to be managed by the generic [`ResourceActor`](crate::actor_framework::ResourceActor).
+//! that enables [`User`] to be managed by the generic [`crate::actor_framework::ResourceActor`].
 //!
-//! See the [trait implementation on `User`](crate::domain::User#impl-Entity-for-User) for method documentation.
+//! See the trait implementation on [`User`] for method documentation.
 
 use crate::actor_framework::Entity;
 use crate::domain::{User, UserCreate, UserUpdate};
+
+/// Marker constant to ensure module documentation is rendered.
+#[doc(hidden)]
+pub const ENTITY_IMPL_PRESENT: bool = true;
 
 impl Entity for User {
     type Id = String;
@@ -18,22 +22,11 @@ impl Entity for User {
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new User from creation parameters.
-    ///
-    /// # Arguments
-    /// * `id` - Unique identifier for the user
-    /// * `params` - User creation parameters containing name and email
     fn from_create_params(id: String, params: UserCreate) -> Result<Self, String> {
-        Ok(Self {
-            id,
-            name: params.name,
-            email: params.email,
-        })
+        Ok(Self::new(params.name, params.email))
     }
 
-    /// Updates the user's profile information.
-    ///
-    /// # Arguments
-    /// * `patch` - Contains optional updates for name and/or email
+    /// Handles updates to the User entity.
     ///
     /// # Fields Updated
     /// - `name`: User's display name
@@ -48,10 +41,7 @@ impl Entity for User {
         Ok(())
     }
 
-    /// Handles user-specific actions.
-    ///
-    /// Currently, no custom actions are defined for users.
-    fn handle_action(&mut self, _action: ()) -> Result<(), String> {
+    fn handle_action(&mut self, _action: Self::Action) -> Result<Self::ActionResult, String> {
         Ok(())
     }
 }

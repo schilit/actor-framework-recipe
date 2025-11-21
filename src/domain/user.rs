@@ -1,6 +1,14 @@
 use serde::{Serialize, Deserialize};
 
 /// Represents a registered user in the system.
+///
+/// # Actor Framework
+/// This struct implements the [`Entity`](crate::actor_framework::Entity) trait,
+/// allowing it to be managed by a [`ResourceActor`](crate::actor_framework::ResourceActor).
+///
+/// See [`impl Entity for User`](#impl-Entity-for-User) for details on:
+/// - Creation parameters ([`UserCreate`])
+/// - Update parameters ([`UserUpdate`])
 #[derive(Debug, Clone, PartialEq)]
 pub struct User {
     pub id: String,

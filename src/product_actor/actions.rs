@@ -1,3 +1,11 @@
+//! Custom actions for the Product actor.
+//!
+//! This module defines the domain-specific operations (Actions) that can be performed
+//! on a [`Product`](crate::domain::Product) entity, such as checking stock or reserving items.
+//! These actions are handled by the [`Entity::handle_action`](crate::actor_framework::Entity::handle_action) method.
+//!
+//! See [`impl Entity for Product`](crate::domain::Product#impl-Entity-for-Product) for the implementation details.
+
 /// Custom actions for Product entities.
 ///
 /// These actions represent domain-specific operations that can be performed

@@ -1,7 +1,9 @@
 use tracing::{error, info, instrument};
 use crate::domain::Order;
 use crate::order_actor::OrderError;
-use crate::actor_framework::ResourceClient;
+use crate::actor_framework::{ResourceClient, FrameworkError};
+use crate::clients::traits::DomainClient;
+use async_trait::async_trait;
 use crate::clients::{UserClient, ProductClient};
 
 /// Client for interacting with the Order actor.
@@ -33,7 +35,7 @@ impl OrderClient {
         info!("Processing create_order request (Client Side)");
 
         // Step 1: Validate user
-        match self.user_client.get_user(order.user_id.clone()).await {
+        match self.user_client.get(order.user_id.clone()).await {
             Ok(Some(user)) => info!(user_name = %user.name, "User validation successful"),
             Ok(None) => {
                 error!("User not found");
@@ -46,7 +48,7 @@ impl OrderClient {
         }
 
         // Step 2: Validate product
-        match self.product_client.get_product(order.product_id.clone()).await {
+        match self.product_client.get(order.product_id.clone()).await {
             Ok(Some(product)) => info!(product_name = %product.name, "Product validation successful"),
             Ok(None) => {
                 error!("Product not found");
@@ -78,4 +80,15 @@ impl OrderClient {
     }
 }
 
-impl_client_methods!(OrderClient, Order, OrderError, order);
+#[async_trait]
+impl DomainClient<Order> for OrderClient {
+    type Error = OrderError;
+
+    fn inner(&self) -> &ResourceClient<Order> {
+        &self.inner
+    }
+
+    fn map_error(e: FrameworkError) -> Self::Error {
+        OrderError::ActorCommunicationError(e.to_string())
+    }
+}

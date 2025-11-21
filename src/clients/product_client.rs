@@ -1,7 +1,9 @@
 use tracing::{debug, instrument};
 use crate::domain::Product;
 use crate::product_actor::ProductError;
-use crate::actor_framework::ResourceClient;
+use crate::actor_framework::{ResourceClient, FrameworkError};
+use crate::clients::traits::DomainClient;
+use async_trait::async_trait;
 
 /// Client for interacting with the Product actor.
 #[derive(Clone)]
@@ -9,7 +11,24 @@ pub struct ProductClient {
     inner: ResourceClient<Product>,
 }
 
-impl_basic_client!(ProductClient, Product, ProductError, product);
+impl ProductClient {
+    pub fn new(inner: ResourceClient<Product>) -> Self {
+        Self { inner }
+    }
+}
+
+#[async_trait]
+impl DomainClient<Product> for ProductClient {
+    type Error = ProductError;
+
+    fn inner(&self) -> &ResourceClient<Product> {
+        &self.inner
+    }
+
+    fn map_error(e: FrameworkError) -> Self::Error {
+        ProductError::ActorCommunicationError(e.to_string())
+    }
+}
 
 impl ProductClient {
     // Custom create method as it needs specific payload conversion

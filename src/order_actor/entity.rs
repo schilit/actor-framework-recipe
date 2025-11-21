@@ -1,12 +1,16 @@
-//! Entity trait implementation for [`Order`].
+//! Entity trait implementation for the Order domain type.
 //!
 //! This module contains the [`Entity`] trait implementation
-//! that enables `Order` to be managed by the generic [`ResourceActor`](crate::actor_framework::ResourceActor).
+//! that enables [`Order`] to be managed by the generic [`crate::actor_framework::ResourceActor`].
 //!
-//! See the [trait implementation on `Order`](crate::domain::Order#impl-Entity-for-Order) for method documentation.
+//! See the trait implementation on [`Order`] for method documentation.
 
 use crate::actor_framework::Entity;
 use crate::domain::{Order, OrderCreate};
+
+/// Marker constant to ensure module documentation is rendered.
+#[doc(hidden)]
+pub const ENTITY_IMPL_PRESENT: bool = true;
 
 impl Entity for Order {
     type Id = String;
@@ -18,35 +22,15 @@ impl Entity for Order {
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new Order from creation parameters.
-    ///
-    /// # Arguments
-    /// * `id` - Unique identifier for the order
-    /// * `params` - Order creation parameters containing user_id, product_id, quantity, and total
-    ///
-    /// # Notes
-    /// The order is initialized with status "Created".
-    fn from_create_params(id: String, params: OrderCreate) -> Result<Self, String> {
-        Ok(Self {
-            id,
-            user_id: params.user_id,
-            product_id: params.product_id,
-            quantity: params.quantity,
-            total: params.total,
-            status: "Created".to_string(),
-        })
+    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, String> {
+        Ok(Self::new(id, params.user_id, params.product_id, params.quantity, params.total))
     }
 
-    /// Updates the order.
-    ///
-    /// Currently, no updates are supported for orders.
-    fn on_update(&mut self, _patch: ()) -> Result<(), String> {
+    fn handle_action(&mut self, _action: Self::Action) -> Result<Self::ActionResult, String> {
         Ok(())
     }
 
-    /// Handles order-specific actions.
-    ///
-    /// Currently, no custom actions are defined for orders.
-    fn handle_action(&mut self, _action: ()) -> Result<(), String> {
+    fn on_update(&mut self, _update: Self::UpdateParams) -> Result<(), String> {
         Ok(())
     }
 }
