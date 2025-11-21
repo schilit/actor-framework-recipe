@@ -7,7 +7,7 @@
 //! - **[framework]**: The heart of the system. Contains the generic [`ResourceActor`](framework::ResourceActor) and [`Entity`](framework::Entity) trait.
 //! - **[domain]**: Pure data structures ([`User`], [`Product`], [`Order`]) that implement the `Entity` trait.
 //! - **[clients]**: Type-safe wrappers (e.g., [`UserClient`](clients::UserClient)) that hide the complexity of message passing.
-//! - **[app_system]**: Orchestration layer that manages the lifecycle of actors.
+//! - **[runtime]**: Orchestration layer that manages the lifecycle of actors.
 //!
 //! ## 📚 Quick Start
 //!
@@ -23,7 +23,7 @@
 mod domain;
 mod clients;
 
-mod app_system;
+mod runtime;
 
 mod framework;
 mod user_actor;
@@ -36,7 +36,7 @@ mod integration_tests;
 
 use tracing::{error, info, Instrument};
 use crate::domain::{User, Order, Product};
-use crate::app_system::{OrderSystem, setup_tracing};
+use crate::runtime::{OrderSystem, setup_tracing};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
