@@ -1,13 +1,13 @@
 //! Entity trait implementation for the Product domain type.
 //!
 //! This module contains the [`Entity`] trait implementation
-//! that enables [`Product`] to be managed by the generic [`crate::actor_framework::ResourceActor`].
+//! that enables [`Product`] to be managed by the generic [`crate::framework::ResourceActor`].
 //!
 //! Includes support for custom actions like stock checking and reservation.
 //!
 //! See the trait implementation on [`Product`] for method documentation.
 
-use crate::actor_framework::Entity;
+use crate::framework::Entity;
 use crate::domain::{Product, ProductCreate, ProductUpdate};
 use super::actions::{ProductAction, ProductActionResult};
 

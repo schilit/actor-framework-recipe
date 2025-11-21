@@ -1,7 +1,7 @@
 use tracing::{error, info, instrument};
 use crate::domain::Order;
 use crate::order_actor::OrderError;
-use crate::actor_framework::{ResourceClient, FrameworkError};
+use crate::framework::{ResourceClient, FrameworkError};
 use crate::clients::traits::DomainClient;
 use async_trait::async_trait;
 use crate::clients::{UserClient, ProductClient};

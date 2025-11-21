@@ -4,7 +4,7 @@
 //!
 //! ## 🚀 Core Components
 //!
-//! - **[actor_framework]**: The heart of the system. Contains the generic [`ResourceActor`](actor_framework::ResourceActor) and [`Entity`](actor_framework::Entity) trait.
+//! - **[framework]**: The heart of the system. Contains the generic [`ResourceActor`](framework::ResourceActor) and [`Entity`](framework::Entity) trait.
 //! - **[domain]**: Pure data structures ([`User`], [`Product`], [`Order`]) that implement the `Entity` trait.
 //! - **[clients]**: Type-safe wrappers (e.g., [`UserClient`](clients::UserClient)) that hide the complexity of message passing.
 //! - **[app_system]**: Orchestration layer that manages the lifecycle of actors.
@@ -18,22 +18,20 @@
 //!
 //! ## 🧪 Testing
 //!
-//! See `mock_framework` for utilities to test clients without spawning full actors.
+//! See [`framework::mock`] for utilities to test clients without spawning full actors.
 
 mod domain;
 mod clients;
 
 mod app_system;
 
-#[cfg(test)]
-mod mock_framework;
-#[cfg(test)]
-mod integration_tests;
-
-mod actor_framework;
+mod framework;
 mod user_actor;
 mod product_actor;
 mod order_actor;
+
+#[cfg(test)]
+mod integration_tests;
 
 
 use tracing::{error, info, Instrument};

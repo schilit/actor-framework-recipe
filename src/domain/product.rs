@@ -1,8 +1,8 @@
 /// Represents a product in the inventory.
 ///
 /// # Actor Framework
-/// This struct implements the [`Entity`](crate::actor_framework::Entity) trait,
-/// allowing it to be managed by a [`ResourceActor`](crate::actor_framework::ResourceActor).
+/// This struct implements the [`Entity`](crate::framework::Entity) trait,
+/// allowing it to be managed by a [`ResourceActor`](crate::framework::ResourceActor).
 ///
 /// See [`impl Entity for Product`](#impl-Entity-for-Product) for details on:
 /// - Creation parameters ([`ProductCreate`](crate::domain::ProductCreate))

@@ -1,4 +1,4 @@
-//! Pure data structures (DTOs) implementing the [`Entity`](crate::actor_framework::Entity) trait.
+//! Pure data structures (DTOs) implementing the [`Entity`](crate::framework::Entity) trait.
 
 pub mod user;
 pub mod product;

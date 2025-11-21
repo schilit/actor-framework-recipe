@@ -1,7 +1,7 @@
 use tracing::{debug, instrument};
 use crate::domain::Product;
 use crate::product_actor::ProductError;
-use crate::actor_framework::{ResourceClient, FrameworkError};
+use crate::framework::{ResourceClient, FrameworkError};
 use crate::clients::traits::DomainClient;
 use async_trait::async_trait;
 
@@ -77,7 +77,7 @@ impl ProductClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mock_framework::{create_mock_client, expect_action};
+    use crate::framework::mock::{create_mock_client, expect_action};
     use crate::product_actor::{ProductAction, ProductActionResult};
 
     #[tokio::test]
@@ -154,7 +154,7 @@ mod tests {
         }
 
         // Respond with error
-        use crate::actor_framework::FrameworkError;
+        use crate::framework::FrameworkError;
         responder.send(Err(FrameworkError::Custom(
             "Insufficient stock: 10 available, 100 requested".to_string()
         ))).unwrap();

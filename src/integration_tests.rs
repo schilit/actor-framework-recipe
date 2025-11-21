@@ -2,7 +2,7 @@
 mod tests {
     use crate::clients::{OrderClient, UserClient, ProductClient};
     use crate::domain::{Order, User, Product};
-    use crate::mock_framework::{create_mock_client, expect_get, expect_action};
+    use crate::framework::mock::{create_mock_client, expect_get, expect_action};
     use crate::product_actor::{ProductAction, ProductActionResult};
 
     #[tokio::test]
@@ -46,7 +46,7 @@ mod tests {
         responder.send(Ok(ProductActionResult::ReserveStock(()))).unwrap();
 
         // Expect Order Create
-        use crate::mock_framework::expect_create;
+        use crate::framework::mock::expect_create;
         let (payload, responder) = expect_create(&mut order_rx).await.expect("Expected Order Create");
         assert_eq!(payload.user_id, "user_1");
         assert_eq!(payload.product_id, "product_1");

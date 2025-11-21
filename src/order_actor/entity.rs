@@ -1,11 +1,11 @@
 //! Entity trait implementation for the Order domain type.
 //!
 //! This module contains the [`Entity`] trait implementation
-//! that enables [`Order`] to be managed by the generic [`crate::actor_framework::ResourceActor`].
+//! that enables [`Order`] to be managed by the generic [`crate::framework::ResourceActor`].
 //!
 //! See the trait implementation on [`Order`] for method documentation.
 
-use crate::actor_framework::Entity;
+use crate::framework::Entity;
 use crate::domain::{Order, OrderCreate};
 
 /// Marker constant to ensure module documentation is rendered.

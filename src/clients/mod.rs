@@ -1,4 +1,4 @@
-//! Type-safe wrappers around [`ResourceClient`](crate::actor_framework::ResourceClient).
+//! Type-safe wrappers around [`ResourceClient`](crate::framework::ResourceClient).
 
 pub mod user_client;
 pub mod product_client;

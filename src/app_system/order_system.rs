@@ -1,6 +1,6 @@
 use tracing::{info, error};
 use crate::clients::{OrderClient, UserClient, ProductClient};
-use crate::actor_framework::ResourceActor;
+use crate::framework::ResourceActor;
 use crate::domain::{User, Product, Order};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};

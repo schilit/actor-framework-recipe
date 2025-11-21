@@ -1,7 +1,7 @@
 use tracing::{debug, instrument};
 use crate::domain::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
-use crate::actor_framework::{ResourceClient, FrameworkError};
+use crate::framework::{ResourceClient, FrameworkError};
 use crate::clients::traits::DomainClient;
 use async_trait::async_trait;
 
