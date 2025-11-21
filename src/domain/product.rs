@@ -1,4 +1,6 @@
 /// Represents a product in the inventory.
+use serde::{Serialize, Deserialize};
+
 #[derive(Debug, Clone)]
 pub struct Product {
     #[allow(dead_code)]
@@ -34,8 +36,7 @@ pub struct ProductCreate {
     pub quantity: u32,
 }
 
-#[derive(Debug, Clone)]
-/// DTOs for Product updates.
+// DTOs for Product updates.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProductUpdate {
     pub price: Option<f64>,
