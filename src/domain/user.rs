@@ -21,6 +21,14 @@ pub struct UserPatch {
 }
 
 impl User {
+    /// Creates a new User instance.
+    ///
+    /// # Arguments
+    /// * `name` - User's display name
+    /// * `email` - User's email address
+    ///
+    /// # Notes
+    /// The `id` field is initialized as an empty string and will be set by the actor system.
     pub fn new(name: impl Into<String>, email: impl Into<String>) -> Self {
         Self {
             id: String::new(),

@@ -10,6 +10,14 @@ impl Entity for Order {
 
     // fn id(&self) -> &String { &self.id }
 
+    /// Creates a new Order from creation parameters.
+    ///
+    /// # Arguments
+    /// * `id` - Unique identifier for the order
+    /// * `params` - Order creation parameters containing user_id, product_id, quantity, and total
+    ///
+    /// # Notes
+    /// The order is initialized with status "Created".
     fn from_create_params(id: String, params: OrderCreate) -> Result<Self, String> {
         Ok(Self {
             id,
@@ -21,10 +29,16 @@ impl Entity for Order {
         })
     }
 
+    /// Updates the order.
+    ///
+    /// Currently, no updates are supported for orders.
     fn on_update(&mut self, _patch: ()) -> Result<(), String> {
         Ok(())
     }
 
+    /// Handles order-specific actions.
+    ///
+    /// Currently, no custom actions are defined for orders.
     fn handle_action(&mut self, _action: ()) -> Result<(), String> {
         Ok(())
     }

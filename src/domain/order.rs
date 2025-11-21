@@ -21,7 +21,18 @@ pub struct OrderCreate {
 }
 
 impl Order {
-    // Keep for backward compatibility if needed, or remove if fully migrating
+    /// Creates a new Order instance.
+    ///
+    /// # Arguments
+    /// * `id` - Unique identifier (typically set by the actor system)
+    /// * `user_id` - ID of the user placing the order
+    /// * `product_id` - ID of the product being ordered
+    /// * `quantity` - Quantity ordered
+    /// * `total` - Total price for the order
+    ///
+    /// # Notes
+    /// The order is initialized with status "Created".
+    /// This constructor is kept for backward compatibility.
     pub fn new(
         id: impl Into<String>,
         user_id: impl Into<String>,

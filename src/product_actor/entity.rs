@@ -11,6 +11,11 @@ impl Entity for Product {
 
     // fn id(&self) -> &String { &self.id }
 
+    /// Creates a new Product from creation parameters.
+    ///
+    /// # Arguments
+    /// * `id` - Unique identifier for the product
+    /// * `params` - Product creation parameters containing name, price, and quantity
     fn from_create_params(id: String, params: ProductCreate) -> Result<Self, String> {
         Ok(Self {
             id,
@@ -20,6 +25,14 @@ impl Entity for Product {
         })
     }
 
+    /// Updates the product's price and/or quantity.
+    ///
+    /// # Arguments
+    /// * `patch` - Contains optional updates for price and/or quantity
+    ///
+    /// # Fields Updated
+    /// - `price`: Product price
+    /// - `quantity`: Available stock quantity
     fn on_update(&mut self, patch: ProductPatch) -> Result<(), String> {
         if let Some(price) = patch.price {
             self.price = price;
@@ -30,6 +43,14 @@ impl Entity for Product {
         Ok(())
     }
 
+    /// Handles product-specific actions.
+    ///
+    /// # Actions
+    /// - `CheckStock`: Returns the current stock level
+    /// - `ReserveStock(amount)`: Decrements stock by the specified amount
+    ///
+    /// # Errors
+    /// Returns an error if attempting to reserve more stock than available.
     fn handle_action(&mut self, action: ProductAction) -> Result<ProductActionResult, String> {
         match action {
             ProductAction::CheckStock => {

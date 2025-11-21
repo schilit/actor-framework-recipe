@@ -9,6 +9,13 @@ pub struct Product {
 }
 
 impl Product {
+    /// Creates a new Product instance.
+    ///
+    /// # Arguments
+    /// * `id` - Unique identifier (typically set by the actor system)
+    /// * `name` - Product name
+    /// * `price` - Product price
+    /// * `quantity` - Available stock quantity
     pub fn new(id: impl Into<String>, name: impl Into<String>, price: f64, quantity: u32) -> Self {
         Self {
             id: id.into(),

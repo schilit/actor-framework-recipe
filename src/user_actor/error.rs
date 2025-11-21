@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+/// Errors that can occur during user operations.
 #[derive(Debug, Clone, Error, PartialEq)]
 #[allow(dead_code)]
 pub enum UserError {
