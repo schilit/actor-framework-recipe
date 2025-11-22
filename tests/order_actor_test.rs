@@ -59,23 +59,19 @@ async fn test_order_actor_with_mocked_dependencies() {
     product_mock.expect_action("product_1".to_string())
         .return_ok(ProductActionResult::ReserveStock(()));
 
-    // Create REAL Order actor
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    
-    let order_id_counter = Arc::new(AtomicU64::new(1));
-    let (order_actor, order_resource_client) = ResourceActor::<Order>::new(32, move || {
-        let id = order_id_counter.fetch_add(1, Ordering::SeqCst);
-        format!("order_{}", id)
-    });
+    // Create clients from mocks
+    let user_client = UserClient::new(user_mock.client());
+    let product_client = ProductClient::new(product_mock.client());
+
+    // Create REAL Order actor using factory function
+    // We inject the clients derived from mocks!
+    let (order_actor, order_client) = actor_recipe::order_actor::new(
+        user_client.clone(), 
+        product_client.clone()
+    );
 
     // Spawn the real actor
     let actor_handle = tokio::spawn(order_actor.run());
-
-    // Create OrderClient with real Order actor but mocked dependencies
-    let user_client = UserClient::new(user_mock.client());
-    let product_client = ProductClient::new(product_mock.client());
-    let order_client = OrderClient::new(order_resource_client, user_client, product_client);
 
     // Execute: This will run through the REAL Order actor
     let order = Order::new("", "user_1", "product_1", 3, 75.0);

@@ -1,9 +1,5 @@
 use tracing::{info, error};
 use crate::clients::{OrderClient, UserClient, ProductClient};
-use crate::framework::ResourceActor;
-use crate::model::{User, Product, Order};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 /// The main runtime orchestrator for the actor-based order management system.
 ///
@@ -63,18 +59,8 @@ impl OrderSystem {
         // 1. Setup User Actor
         // =====================================================================
         
-        // Create a thread-safe counter for generating unique user IDs
-        let user_id_counter = Arc::new(AtomicU64::new(1));
-        let next_user_id = move || {
-            let id = user_id_counter.fetch_add(1, Ordering::SeqCst);
-            format!("user_{}", id)
-        };
-        
-        // Create the User actor and its client
-        // - Buffer size of 32 means the actor can queue up to 32 pending requests
-        // - The actor runs independently in its own task
-        let (user_actor, user_resource_client) = ResourceActor::<User>::new(32, next_user_id);
-        let user_client = UserClient::new(user_resource_client);
+        // Create the User actor and its client using the factory function
+        let (user_actor, user_client) = crate::user_actor::new();
         
         // Spawn the actor in a background task
         let user_handle = tokio::spawn(user_actor.run());
@@ -83,16 +69,8 @@ impl OrderSystem {
         // 2. Setup Product Actor
         // =====================================================================
         
-        // Create a thread-safe counter for generating unique product IDs
-        let product_id_counter = Arc::new(AtomicU64::new(1));
-        let next_product_id = move || {
-            let id = product_id_counter.fetch_add(1, Ordering::SeqCst);
-            format!("product_{}", id)
-        };
-        
-        // Create the Product actor and its client
-        let (product_actor, product_resource_client) = ResourceActor::<Product>::new(32, next_product_id);
-        let product_client = ProductClient::new(product_resource_client);
+        // Create the Product actor and its client using the factory function
+        let (product_actor, product_client) = crate::product_actor::new();
         
         // Spawn the actor in a background task
         let product_handle = tokio::spawn(product_actor.run());
@@ -101,20 +79,9 @@ impl OrderSystem {
         // 3. Setup Order Actor (with dependencies)
         // =====================================================================
         
-        // Create a thread-safe counter for generating unique order IDs
-        let order_id_counter = Arc::new(AtomicU64::new(1));
-        let next_order_id = move || {
-            let id = order_id_counter.fetch_add(1, Ordering::SeqCst);
-            format!("order_{}", id)
-        };
-
-        // Create the Order actor and its client
-        let (order_actor, order_resource_client) = ResourceActor::<Order>::new(32, next_order_id);
-        
-        // Wire up dependencies: OrderClient needs UserClient and ProductClient
-        // to validate users and manage product stock when creating orders
-        let order_client = OrderClient::new(
-            order_resource_client,
+        // Create the Order actor and its client using the factory function
+        // Dependencies are injected here
+        let (order_actor, order_client) = crate::order_actor::new(
             user_client.clone(),
             product_client.clone()
         );
