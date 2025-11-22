@@ -372,7 +372,70 @@ impl ActorEntity for Product {
 
 ## How to Write Tests
 
-The actor framework supports three distinct testing patterns, each with different trade-offs:
+The actor framework supports four distinct testing patterns, each with different trade-offs:
+
+### Pattern 0: Client Logic Test (Pure Mock)
+
+**When to use**: Testing complex orchestration logic in your *Client* (e.g., `OrderClient`) without spinning up any actors.
+
+**What you test**: The client's decision making, error handling, and coordination sequence.
+
+**Example**: Testing `OrderClient` validation logic
+
+```rust
+#[tokio::test]
+async fn test_order_client_orchestration() {
+    // 1. Setup Mocks (No real actors!)
+    let mut user_mock = MockClient::<User>::new();
+    let mut product_mock = MockClient::<Product>::new();
+    let mut order_mock = MockClient::<Order>::new();
+
+    // 2. Define Expectations
+    user_mock.expect_get("user_1".to_string())
+        .return_ok(Some(User::new("user_1", "test@example.com")));
+
+    product_mock.expect_get("product_1".to_string())
+        .return_ok(Some(Product::new("product_1", "Widget", 10.0, 100)));
+
+    product_mock.expect_action("product_1".to_string())
+        .return_ok(ProductActionResult::ReserveStock(()));
+
+    order_mock.expect_create()
+        .return_ok("order_1".to_string());
+
+    // 3. Create Client with Mocks
+    let user_client = UserClient::new(user_mock.client());
+    let product_client = ProductClient::new(product_mock.client());
+    
+    // Inject mocks into the OrderClient
+    let order_client = OrderClient::new(
+        order_mock.client(), // Mock Order actor
+        user_client,
+        product_client
+    );
+
+    // 4. Execute
+    let order = Order::new("order_1", "user_1", "product_1", 5, 50.0);
+    let result = order_client.create_order(order).await;
+
+    // 5. Verify
+    assert_eq!(result, Ok("order_1".to_string()));
+    user_mock.verify();
+    product_mock.verify();
+    order_mock.verify();
+}
+```
+
+**Pros**:
+- ⚡⚡⚡ Fastest (no async tasks spawned)
+- ✅ Deterministic
+- ✅ Great for testing edge cases (e.g., "User not found", "Stock reservation failed")
+
+**Cons**:
+- ❌ Doesn't test *any* actor logic
+- ❌ Mocks can drift from reality
+
+---
 
 ### Pattern 1: Single Actor Test (Fast, Isolated)
 
@@ -567,6 +630,7 @@ async fn test_full_order_system_integration() {
 
 | Pattern | Speed | Isolation | Coverage | Use Case |
 |---------|-------|-----------|----------|----------|
+| **Pure Mock** | ⚡⚡⚡⚡ Instant | ✅ Full | Client logic only | Testing API handlers & orchestration |
 | **Single Actor** | ⚡⚡⚡ Fast | ✅ Full | Actor logic only | Unit testing actor behavior |
 | **Actor + Mocks** | ⚡⚡ Medium | ✅ Good | Actor + coordination | Testing actor interactions |
 | **Full System** | ⚡ Slow | ❌ None | Everything | End-to-end validation |
