@@ -99,13 +99,13 @@ src/
 
 ## 📚 How-To Guide
 
-**New to the framework?** Check out the [**How-To Guide (HOWTO.md)**](HOWTO.md) for step-by-step tutorials:
+**New to the framework?** Check out the [**How-To Guide**](HOWTO.md) for step-by-step tutorials:
 
-- **How to Add a New Actor** - Walk through creating a `User` actor from scratch
-- **How to Add Custom Actions** - Learn by example with `Product`'s stock management
-- **How to Write Tests** - Master the mock framework with real examples
-- **How to Handle Errors** - Type-safe error handling patterns
-- **Understanding Lifecycle Hooks** - When to use `on_create` and `on_delete`
+- [**How to Add a New Actor**](HOWTO.md#how-to-add-a-new-actor) - Walk through creating a `User` actor from scratch
+- [**How to Add Custom Actions**](HOWTO.md#how-to-add-a-custom-action) - Learn by example with `Product`'s stock management
+- [**How to Write Tests**](HOWTO.md#how-to-write-tests) - Master the mock framework with real examples
+- [**How to Handle Errors**](HOWTO.md#how-to-handle-errors) - Type-safe error handling patterns
+- [**Understanding Lifecycle Hooks**](HOWTO.md#understanding-lifecycle-hooks) - When to use `on_create` and `on_delete`
 
 ## 🛠 Usage
 
