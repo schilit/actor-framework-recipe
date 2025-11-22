@@ -1,5 +1,5 @@
 use tracing::{debug, instrument};
-use crate::domain::{User, UserCreate, UserUpdate};
+use crate::model::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
 use crate::framework::{ResourceClient, FrameworkError};
 use crate::clients::traits::DomainClient;

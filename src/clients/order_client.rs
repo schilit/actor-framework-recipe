@@ -1,6 +1,6 @@
 use tracing::{error, info, instrument, debug};
 use crate::clients::{UserClient, ProductClient};
-use crate::domain::Order;
+use crate::model::Order;
 use crate::order_actor::OrderError;
 use crate::framework::{ResourceClient, FrameworkError};
 use async_trait::async_trait;
@@ -70,7 +70,7 @@ impl OrderClient {
         info!("Stock reserved successfully");
 
         // Step 4: Create order in ResourceActor
-        let payload = crate::domain::OrderCreate {
+        let payload = crate::model::OrderCreate {
             user_id: order.user_id,
             product_id: order.product_id,
             quantity: order.quantity,

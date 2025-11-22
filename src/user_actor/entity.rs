@@ -6,7 +6,7 @@
 //! See the trait implementation on [`User`] for method documentation.
 
 use crate::framework::Entity;
-use crate::domain::{User, UserCreate, UserUpdate};
+use crate::model::{User, UserCreate, UserUpdate};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]

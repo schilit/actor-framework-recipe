@@ -8,7 +8,7 @@
 //! See the trait implementation on [`Product`] for method documentation.
 
 use crate::framework::Entity;
-use crate::domain::{Product, ProductCreate, ProductUpdate};
+use crate::model::{Product, ProductCreate, ProductUpdate};
 use super::actions::{ProductAction, ProductActionResult};
 
 /// Marker constant to ensure module documentation is rendered.

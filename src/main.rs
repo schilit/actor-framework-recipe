@@ -5,9 +5,9 @@
 //! ## 🚀 Core Components
 //!
 //! - **[framework]**: The heart of the system. Contains the generic [`ResourceActor`](framework::ResourceActor) and [`Entity`](framework::Entity) trait.
-//! - **[domain]**: Pure data structures ([`User`], [`Product`], [`Order`]) that implement the `Entity` trait.
+//! - **[model]**: Pure data structures ([`User`], [`Product`], [`Order`]) that implement the `Entity` trait.
 //! - **[clients]**: Type-safe wrappers (e.g., [`UserClient`](clients::UserClient)) that hide the complexity of message passing.
-//! - **[runtime]**: Orchestration layer that manages the lifecycle of actors.
+//! - **[lifecycle]**: Orchestration layer that manages the lifecycle of actors.
 //!
 //! ## 📚 Quick Start
 //!
@@ -20,7 +20,7 @@
 //!
 //! See [`framework::mock`] for utilities to test clients without spawning full actors.
 
-mod domain;
+mod model;
 mod clients;
 
 mod lifecycle;
@@ -35,7 +35,7 @@ mod integration_tests;
 
 
 use tracing::{error, info, Instrument};
-use crate::domain::{User, Order, Product};
+use crate::model::{User, Order, Product};
 use crate::lifecycle::{OrderSystem, setup_tracing};
 
 #[tokio::main]

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::clients::{OrderClient, UserClient, ProductClient};
-    use crate::domain::{Order, User, Product};
+    use crate::model::{Order, User, Product};
     use crate::framework::mock::{create_mock_client, expect_get, expect_action};
     use crate::product_actor::{ProductAction, ProductActionResult};
 

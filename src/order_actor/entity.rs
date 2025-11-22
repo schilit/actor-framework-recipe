@@ -6,7 +6,7 @@
 //! See the trait implementation on [`Order`] for method documentation.
 
 use crate::framework::Entity;
-use crate::domain::{Order, OrderCreate};
+use crate::model::{Order, OrderCreate};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]

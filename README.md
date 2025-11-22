@@ -61,7 +61,7 @@ src/
 ├── clients/             # 🔌 The Plugs: Type-safe wrappers for actors
 │   ├── traits.rs        #    - DomainClient trait
 │   └── ...
-├── domain/              # 📦 The Data: Pure data structures (User, Product, Order)
+├── model/               # 📦 The Data: Pure data structures (User, Product, Order)
 ├── user_actor/          # 👤 User Domain Logic
 ├── product_actor/       # 📦 Product Domain Logic
 ├── order_actor/         # 🛒 Order Domain Logic

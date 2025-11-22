@@ -269,7 +269,7 @@ pub async fn expect_action<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequ
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{User, UserCreate};
+    use crate::model::{User, UserCreate};
 
     #[tokio::test]
     async fn test_mock_client() {
@@ -291,7 +291,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_client_with_expectations() {
-        use crate::domain::User;
+        use crate::model::User;
 
         // Create mock with fluent expectation API
         let mut mock = MockClient::<User>::new();

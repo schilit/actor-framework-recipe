@@ -5,8 +5,8 @@
 /// allowing it to be managed by a [`ResourceActor`](crate::framework::ResourceActor).
 ///
 /// See [`impl Entity for Product`](#impl-Entity-for-Product) for details on:
-/// - Creation parameters ([`ProductCreate`](crate::domain::ProductCreate))
-/// - Update parameters ([`ProductUpdate`](crate::domain::ProductUpdate))
+/// - Creation parameters ([`ProductCreate`](crate::model::ProductCreate))
+/// - Update parameters ([`ProductUpdate`](crate::model::ProductUpdate))
 /// - Custom actions ([`ProductAction`](crate::product_actor::actions::ProductAction))
 use serde::{Serialize, Deserialize};
 

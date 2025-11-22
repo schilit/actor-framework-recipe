@@ -1,5 +1,5 @@
 use tracing::{debug, instrument};
-use crate::domain::Product;
+use crate::model::Product;
 use crate::product_actor::ProductError;
 use crate::framework::{ResourceClient, FrameworkError};
 use crate::clients::traits::DomainClient;
@@ -36,7 +36,7 @@ impl ProductClient {
     #[instrument(skip(self))]
     pub async fn create_product(&self, product: Product) -> Result<String, ProductError> {
         debug!("Sending request");
-        let payload = crate::domain::ProductCreate {
+        let payload = crate::model::ProductCreate {
             name: product.name,
             price: product.price,
             quantity: product.quantity,
