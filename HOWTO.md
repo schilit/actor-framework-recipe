@@ -157,49 +157,54 @@ impl ActorClient<User> for UserClient {
 - Provides domain-specific methods (`create_user`, `update_user`)
 - Implements `ActorClient` trait to inherit `get()` and `delete()`
 
-### Step 4: Wire It Into the System
+### Step 4: Create a Factory Function (Optional but Recommended)
 
-In `src/lifecycle/order_system.rs`:
+To make your actor easy to instantiate, add a factory function in `src/user_actor/mod.rs`:
 
 ```rust
-use crate::user_actor::entity::User;
-use crate::clients::UserClient;
 use crate::framework::ResourceActor;
+use crate::clients::UserClient;
+use crate::model::User;
+use uuid::Uuid;
 
-pub struct OrderSystem {
-    pub user_client: UserClient,
-    // ... other clients
-    user_actor_handle: JoinHandle<()>,
+/// Creates a new User actor and its client.
+pub fn new() -> (ResourceActor<User>, UserClient) {
+    // 1. Create the generic actor and client
+    let (actor, generic_client) = ResourceActor::new(100, || {
+        format!("user_{}", Uuid::new_v4())
+    });
+
+    // 2. Wrap the generic client in our domain client
+    let client = UserClient::new(generic_client);
+
+    (actor, client)
 }
+```
+
+### Step 5: Wire It Into the System
+
+In `src/lifecycle/order_system.rs`, usage becomes much cleaner:
+
+```rust
+use crate::user_actor;
 
 impl OrderSystem {
     pub fn new() -> Self {
-        // Create the actor and client
-        let (user_actor, user_client_inner) = ResourceActor::new(100, || {
-            format!("user_{}", Uuid::new_v4())
-        });
+        // 1. Create Actor & Client using the factory
+        let (user_actor, user_client) = user_actor::new();
 
-        // Spawn the actor
+        // 2. Spawn the actor
         let user_actor_handle = tokio::spawn(user_actor.run());
-
-        // Wrap in domain client
-        let user_client = UserClient::new(user_client_inner);
 
         Self {
             user_client,
             user_actor_handle,
         }
     }
-
-    pub async fn shutdown(self) -> Result<(), String> {
-        drop(self.user_client); // Close the channel
-        self.user_actor_handle.await.map_err(|e| e.to_string())?;
-        Ok(())
-    }
 }
 ```
 
-**That's it!** You now have a fully functional `User` actor.
+**That's it!** You now have a fully functional `User` actor with a clean initialization API.
 
 ---
 
