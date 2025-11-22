@@ -372,85 +372,259 @@ impl ActorEntity for Product {
 
 ## How to Write Tests
 
-### Unit Test: Testing an Actor in Isolation
+The actor framework supports three distinct testing patterns, each with different trade-offs:
 
-Use the `MockClient` for fluent, readable tests:
+### Pattern 1: Single Actor Test (Fast, Isolated)
+
+**When to use**: Testing a single actor's logic in isolation.
+
+**What you test**: The actor's state management, lifecycle hooks, and action handling.
+
+**Example**: Testing the Product actor's stock management
 
 ```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::framework::mock::MockClient;
-
-    #[tokio::test]
-    async fn test_promote_to_admin() {
-        let mut mock = MockClient::<User>::new();
-
-        // Set up expectations
-        mock.expect_action("user_1".to_string())
-            .return_ok(UserActionResult::PromoteToAdmin(true));
-
-        let client = UserClient::new(mock.client());
-
-        // Execute
-        let promoted = client.promote_to_admin("user_1".to_string()).await.unwrap();
-
-        // Verify
-        assert!(promoted);
-        mock.verify(); // Ensures all expectations were met
-    }
+#[tokio::test]
+async fn test_product_stock_management() {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    
+    // Create a single Product actor
+    let product_id_counter = Arc::new(AtomicU64::new(1));
+    let (product_actor, product_resource_client) = ResourceActor::<Product>::new(32, move || {
+        let id = product_id_counter.fetch_add(1, Ordering::SeqCst);
+        format!("product_{}", id)
+    });
+    
+    // Spawn the actor
+    let actor_handle = tokio::spawn(product_actor.run());
+    
+    // Create the client
+    let product_client = ProductClient::new(product_resource_client);
+    
+    // Test: Create a product
+    let product = Product::new("", "Widget", 10.0, 100);
+    let product_id = product_client.create_product(product).await.unwrap();
+    
+    // Test: Check initial stock
+    let stock = product_client.check_stock(product_id.clone()).await.unwrap();
+    assert_eq!(stock, 100);
+    
+    // Test: Reserve stock
+    product_client.reserve_stock(product_id.clone(), 30).await.unwrap();
+    
+    // Test: Verify stock was decremented
+    let stock = product_client.check_stock(product_id.clone()).await.unwrap();
+    assert_eq!(stock, 70);
+    
+    // Test: Insufficient stock should fail
+    let result = product_client.reserve_stock(product_id.clone(), 100).await;
+    assert!(result.is_err());
+    
+    // Cleanup
+    drop(product_client);
+    actor_handle.await.unwrap();
 }
 ```
 
-### Integration Test: Testing Actor Coordination
+**Pros**:
+- ✅ Fast (no system setup)
+- ✅ Isolated (no dependencies)
+- ✅ Easy to debug
 
-In `tests/order_actor_test.rs`:
+**Cons**:
+- ❌ Doesn't test actor coordination
+- ❌ Doesn't test dependency injection
+
+---
+
+### Pattern 2: Actor with Mocked Dependencies (Sweet Spot)
+
+**When to use**: Testing an actor that depends on other actors, but you want to isolate the actor under test.
+
+**What you test**: The actor's coordination logic, how it calls dependencies, error handling.
+
+**Example**: Testing Order actor with mocked User and Product actors
 
 ```rust
-use actor_recipe::clients::{OrderClient, UserClient, ProductClient};
-use actor_recipe::model::{Order, User, Product};
-use actor_recipe::framework::mock::MockClient;
-
 #[tokio::test]
-async fn test_order_creation_flow() {
+async fn test_order_actor_with_mocked_dependencies() {
+    // Setup mock dependencies
     let mut user_mock = MockClient::<User>::new();
     let mut product_mock = MockClient::<Product>::new();
-    let mut order_mock = MockClient::<Order>::new();
 
-    // Define expectations
+    // Define expectations for the dependencies
     user_mock.expect_get("user_1".to_string())
-        .return_ok(Some(User::new("user_1", "test@example.com")));
+        .return_ok(Some(User::new("user_1", "alice@example.com")));
 
     product_mock.expect_get("product_1".to_string())
-        .return_ok(Some(Product::new("product_1", "Widget", 10.0, 100)));
+        .return_ok(Some(Product::new("product_1", "Widget", 25.0, 50)));
 
     product_mock.expect_action("product_1".to_string())
         .return_ok(ProductActionResult::ReserveStock(()));
 
-    order_mock.expect_create()
-        .return_ok("order_1".to_string());
+    // Create REAL Order actor
+    let order_id_counter = Arc::new(AtomicU64::new(1));
+    let (order_actor, order_resource_client) = ResourceActor::<Order>::new(32, move || {
+        let id = order_id_counter.fetch_add(1, Ordering::SeqCst);
+        format!("order_{}", id)
+    });
 
-    // Wire up clients
+    // Spawn the real actor
+    let actor_handle = tokio::spawn(order_actor.run());
+
+    // Create OrderClient with real Order actor but mocked dependencies
     let user_client = UserClient::new(user_mock.client());
     let product_client = ProductClient::new(product_mock.client());
-    let order_client = OrderClient::new(order_mock.client(), user_client, product_client);
+    let order_client = OrderClient::new(order_resource_client, user_client, product_client);
 
-    // Execute
-    let order = Order::new("order_1", "user_1", "product_1", 5, 50.0);
+    // Execute: This will run through the REAL Order actor
+    let order = Order::new("", "user_1", "product_1", 3, 75.0);
     let result = order_client.create_order(order).await;
 
-    // Verify
-    assert_eq!(result, Ok("order_1".to_string()));
+    // Verify the order was created
+    assert!(result.is_ok());
+
+    // Verify mocks were called correctly
     user_mock.verify();
     product_mock.verify();
-    order_mock.verify();
+
+    // Cleanup
+    drop(order_client);
+    actor_handle.await.unwrap();
 }
 ```
 
-**Key Points**:
-- Mock clients let you test coordination without spinning up real actors
-- Fluent API makes tests readable
-- `verify()` ensures all expected interactions happened
+**Pros**:
+- ✅ Tests real actor logic
+- ✅ Isolates dependencies (fast, deterministic)
+- ✅ Tests coordination without full system
+- ✅ Easy to simulate error conditions
+
+**Cons**:
+- ❌ Doesn't test real dependency behavior
+- ❌ Requires mock setup
+
+---
+
+### Pattern 3: Full System Integration Test (Comprehensive)
+
+**When to use**: Testing the entire system working together, end-to-end flows, concurrency.
+
+**What you test**: Real actor coordination, actual state changes, race conditions, system behavior.
+
+**Example**: Full order creation flow
+
+```rust
+#[tokio::test]
+async fn test_full_order_system_integration() {
+    // Create the full system with all real actors
+    let system = OrderSystem::new();
+
+    // Create a user
+    let user = User::new("Alice", "alice@example.com");
+    let user_id = system.user_client.create_user(user).await.unwrap();
+
+    // Create a product with stock
+    let product = Product::new("", "Super Widget", 25.50, 100);
+    let product_id = system.product_client.create_product(product).await.unwrap();
+
+    // Verify initial stock level
+    let initial_stock = system.product_client.check_stock(product_id.clone()).await.unwrap();
+    assert_eq!(initial_stock, 100);
+
+    // Create an order (should reserve stock)
+    let order = Order::new("", user_id.clone(), product_id.clone(), 5, 127.50);
+    let order_id = system.order_client.create_order(order).await.unwrap();
+
+    // Verify stock was actually decremented
+    let final_stock = system.product_client.check_stock(product_id.clone()).await.unwrap();
+    assert_eq!(final_stock, 95, "Stock should be decremented by order quantity");
+
+    // Test insufficient stock scenario
+    let large_order = Order::new("", user_id.clone(), product_id.clone(), 200, 5100.0);
+    let result = system.order_client.create_order(large_order).await;
+    assert!(result.is_err(), "Should fail when stock is insufficient");
+
+    // Graceful shutdown
+    system.shutdown().await.unwrap();
+}
+```
+
+**Pros**:
+- ✅ Tests real system behavior
+- ✅ Catches integration bugs
+- ✅ Tests concurrency and race conditions
+- ✅ High confidence in correctness
+
+**Cons**:
+- ❌ Slower (full system startup)
+- ❌ Harder to debug failures
+- ❌ More complex setup
+
+---
+
+### Testing Pattern Comparison
+
+| Pattern | Speed | Isolation | Coverage | Use Case |
+|---------|-------|-----------|----------|----------|
+| **Single Actor** | ⚡⚡⚡ Fast | ✅ Full | Actor logic only | Unit testing actor behavior |
+| **Actor + Mocks** | ⚡⚡ Medium | ✅ Good | Actor + coordination | Testing actor interactions |
+| **Full System** | ⚡ Slow | ❌ None | Everything | End-to-end validation |
+
+---
+
+### Advanced: Test-Only Actions
+
+Sometimes you need to inspect internal actor state for testing. You can add test-only actions:
+
+```rust
+#[derive(Debug, Clone)]
+pub enum ProductAction {
+    CheckStock,
+    ReserveStock(u32),
+    
+    #[cfg(test)]
+    GetInternalState, // Test-only action
+}
+
+#[derive(Debug, Clone)]
+pub enum ProductActionResult {
+    CheckStock(u32),
+    ReserveStock(()),
+    
+    #[cfg(test)]
+    GetInternalState {
+        quantity: u32,
+        reserved: u32,
+        pending_orders: usize,
+    },
+}
+
+impl ActorEntity for Product {
+    fn handle_action(&mut self, action: ProductAction) -> Result<ProductActionResult, String> {
+        match action {
+            ProductAction::CheckStock => {
+                Ok(ProductActionResult::CheckStock(self.quantity))
+            }
+            ProductAction::ReserveStock(quantity) => {
+                // ... normal logic
+            }
+            #[cfg(test)]
+            ProductAction::GetInternalState => {
+                Ok(ProductActionResult::GetInternalState {
+                    quantity: self.quantity,
+                    reserved: self.reserved_quantity,
+                    pending_orders: self.pending_orders.len(),
+                })
+            }
+        }
+    }
+}
+```
+
+**Use case**: When you need to verify internal state that isn't exposed through normal APIs.
+
+**Best practice**: Use `#[cfg(test)]` to ensure test-only code doesn't ship to production.
 
 ---
 
