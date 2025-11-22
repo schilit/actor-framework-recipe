@@ -210,7 +210,7 @@ impl<T: ActorEntity> ResourceActor<T> {
     /// This is the heart of the actor - it processes messages sequentially,
     /// ensuring thread-safe access to the internal store without locks.
     pub async fn run(mut self) {
-        // Extract just the type name (e.g., "User" instead of "actor_recipe::domain::user::User")
+        // Extract just the type name (e.g., "User" instead of "actor_recipe::model::user::User")
         let entity_type = std::any::type_name::<T>()
             .split("::")
             .last()

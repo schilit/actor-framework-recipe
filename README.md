@@ -97,6 +97,16 @@ src/
 └── integration_tests.rs # ✅ End-to-End Tests
 ```
 
+## 📚 How-To Guide
+
+**New to the framework?** Check out the [**How-To Guide (HOWTO.md)**](HOWTO.md) for step-by-step tutorials:
+
+- **How to Add a New Actor** - Walk through creating a `User` actor from scratch
+- **How to Add Custom Actions** - Learn by example with `Product`'s stock management
+- **How to Write Tests** - Master the mock framework with real examples
+- **How to Handle Errors** - Type-safe error handling patterns
+- **Understanding Lifecycle Hooks** - When to use `on_create` and `on_delete`
+
 ## 🛠 Usage
 
 ### Run the Demo
