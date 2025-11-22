@@ -434,7 +434,7 @@ async fn test_order_client_orchestration() {
 **Pros**:
 - ⚡⚡⚡ Fastest (no async tasks spawned)
 - ✅ Deterministic
-- ✅ Great for testing edge cases (e.g., "User not found", "Stock reservation failed")
+- ✅ Great for testing **Client handling of** edge cases (e.g., "How does OrderClient react when User is not found?")
 
 **Cons**:
 - ❌ Doesn't test *any* actor logic
