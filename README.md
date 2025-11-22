@@ -2,6 +2,8 @@
 
 > **A production-ready, type-safe Actor Model implementation in Rust.**
 
+📚 **[View Full Documentation](https://schilit.github.io/actor-framework-recipe/)**
+
 This recipe demonstrates how to build a robust actor system using Tokio, leveraging Rust's type system to eliminate boilerplate and runtime errors. It is designed as a learning resource for engineers moving from "making it work" to "making it scalable and maintainable."
 
 ## 🏗 Architecture
@@ -9,6 +11,33 @@ This recipe demonstrates how to build a robust actor system using Tokio, leverag
 [View Architecture Dependency Graph](architecture.md)
 
 The system is built on three core pillars: **Type Safety**, **Separation of Concerns**, and **Developer Experience**.
+
+### Why ROA + Actor Model?
+
+This framework combines **Resource-Oriented Architecture (ROA)** with the **Actor Model** to create a powerful pattern for building scalable systems:
+
+**Resource-Oriented Architecture (ROA)**:
+- Standard CRUD operations (Create, Read, Update, Delete) on well-defined resources
+- Predictable lifecycle management
+- Clean, uniform API surface across all resource types
+
+**Actor Model**:
+- Isolated state (no shared memory, no locks)
+- Message-passing concurrency
+- Sequential processing within each actor eliminates race conditions
+
+**The Synergy**:
+- **Separation**: Each resource type (User, Product, Order) gets its own actor with completely isolated state
+- **Coordination**: When resources need to interact (e.g., Order reserving Product stock), they communicate via **Action messages** instead of direct coupling
+- **Scalability**: Independent resources can scale independently without coordination overhead
+- **Maintainability**: Changes to one resource type don't ripple through the system
+
+This pattern excels in systems with many loosely-coupled resources that occasionally need to coordinate. The ROA provides structure, while the Actor Model provides safe concurrency.
+
+**Further Reading**:
+- [Actor Model (Wikipedia)](https://en.wikipedia.org/wiki/Actor_model) - Foundational concurrency pattern by Carl Hewitt
+- [Resource-Oriented Architecture](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm) - Roy Fielding's dissertation on REST/ROA principles
+- [Actors in Rust](https://ryhl.io/blog/actors-with-tokio/) - Practical guide to implementing actors with Tokio
 
 ### 1. The Core Abstraction (`src/framework/`)
 Instead of writing ad-hoc loops for every actor, we define a generic `ResourceActor<T>`.

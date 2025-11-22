@@ -1,14 +1,13 @@
 //! Generic actor framework for resource management.
 //!
 //! This module provides the core building blocks for creating type-safe actor systems
-//! that manage domain entities with CRUD operations and custom actions.
+//! that manage resource entities with CRUD operations and custom actions.
 //!
 //! # Main Components
 //!
-//! - [`Entity`] - Trait that domain types implement to be managed by actors
+//! - [`ActorEntity`] - Trait that resource types implement to be managed by actors
 //! - [`ResourceActor`] - Generic actor that manages entities
-//! - [`ResourceClient`] - Type-safe client for communicating with actors
-//! - [`FrameworkError`] - Common error types
+//! - [`ResourceClient`] - Typub use core::{ActorEntity, ResourceActor, ResourceClient, ResourceRequest, FrameworkError};`] - Common error types
 //!
 //! # Testing
 //!

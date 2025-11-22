@@ -1,4 +1,4 @@
-//! Product-specific domain logic, including stock management actions.
+//! Product-specific resource logic, including stock management actions.
 
 mod actions;
 pub mod entity;

@@ -5,7 +5,7 @@
 //! Use [`create_mock_client`] to get a client and a receiver.
 //! Then use helpers like [`expect_create`] or [`expect_action`] to assert behavior.
 
-use crate::framework::{Entity, ResourceClient, ResourceRequest, FrameworkError};
+use crate::framework::{ActorEntity, ResourceClient, ResourceRequest, FrameworkError};
 use tokio::sync::mpsc;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 /// This enum is used internally by `MockClient` to track what requests
 /// are expected and what responses should be returned.
 #[allow(dead_code)] // Future features: Update, Delete, Action expectations
-enum Expectation<T: Entity> {
+enum Expectation<T: ActorEntity> {
     Get {
         id: T::Id,
         response: Result<Option<T>, FrameworkError>,
@@ -53,13 +53,13 @@ enum Expectation<T: Entity> {
 /// // Use client in tests...
 /// mock.verify(); // Ensures all expectations were met
 /// ```
-pub struct MockClient<T: Entity> {
+pub struct MockClient<T: ActorEntity> {
     client: ResourceClient<T>,
     expectations: Arc<Mutex<VecDeque<Expectation<T>>>>,
     _handle: tokio::task::JoinHandle<()>,
 }
 
-impl<T: Entity + Send + 'static> MockClient<T>
+impl<T: ActorEntity + Send + 'static> MockClient<T>
 where
     T::Id: Send,
     T::CreateParams: Send,
@@ -148,12 +148,12 @@ where
 }
 
 /// Builder for `get` expectations.
-pub struct GetExpectationBuilder<T: Entity> {
+pub struct GetExpectationBuilder<T: ActorEntity> {
     id: T::Id,
     expectations: Arc<Mutex<VecDeque<Expectation<T>>>>,
 }
 
-impl<T: Entity> GetExpectationBuilder<T> {
+impl<T: ActorEntity> GetExpectationBuilder<T> {
     /// Sets the expectation to return a successful result.
     pub fn return_ok(self, value: Option<T>) {
         let mut exps = self.expectations.lock().unwrap();
@@ -174,11 +174,11 @@ impl<T: Entity> GetExpectationBuilder<T> {
 }
 
 /// Builder for `create` expectations.
-pub struct CreateExpectationBuilder<T: Entity> {
+pub struct CreateExpectationBuilder<T: ActorEntity> {
     expectations: Arc<Mutex<VecDeque<Expectation<T>>>>,
 }
 
-impl<T: Entity> CreateExpectationBuilder<T> {
+impl<T: ActorEntity> CreateExpectationBuilder<T> {
     /// Sets the expectation to return a successful result.
     pub fn return_ok(self, id: T::Id) {
         let mut exps = self.expectations.lock().unwrap();
@@ -197,12 +197,12 @@ impl<T: Entity> CreateExpectationBuilder<T> {
 }
 
 /// Builder for `action` expectations.
-pub struct ActionExpectationBuilder<T: Entity> {
+pub struct ActionExpectationBuilder<T: ActorEntity> {
     id: T::Id,
     expectations: Arc<Mutex<VecDeque<Expectation<T>>>>,
 }
 
-impl<T: Entity> ActionExpectationBuilder<T> {
+impl<T: ActorEntity> ActionExpectationBuilder<T> {
     /// Sets the expectation to return a successful result.
     pub fn return_ok(self, result: T::ActionResult) {
         let mut exps = self.expectations.lock().unwrap();
@@ -237,13 +237,13 @@ impl<T: Entity> ActionExpectationBuilder<T> {
 /// This allows us to simulate the Actor's behavior (success, failure, delays) deterministically.
 ///
 /// **Note**: Consider using [`MockClient`] for a more fluent API.
-pub fn create_mock_client<T: Entity>(buffer_size: usize) -> (ResourceClient<T>, mpsc::Receiver<ResourceRequest<T>>) {
+pub fn create_mock_client<T: ActorEntity>(buffer_size: usize) -> (ResourceClient<T>, mpsc::Receiver<ResourceRequest<T>>) {
     let (sender, receiver) = mpsc::channel(buffer_size);
     (ResourceClient::new(sender), receiver)
 }
 
 /// Helper to verify that the next message is a Create request
-pub async fn expect_create<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::CreateParams, tokio::sync::oneshot::Sender<Result<T::Id, FrameworkError>>)> {
+pub async fn expect_create<T: ActorEntity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::CreateParams, tokio::sync::oneshot::Sender<Result<T::Id, FrameworkError>>)> {
     match receiver.recv().await {
         Some(ResourceRequest::Create { params, respond_to }) => Some((params, respond_to)),
         _ => None,
@@ -251,7 +251,7 @@ pub async fn expect_create<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequ
 }
 
 /// Helper to verify that the next message is a Get request
-pub async fn expect_get<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::Id, tokio::sync::oneshot::Sender<Result<Option<T>, FrameworkError>>)> {
+pub async fn expect_get<T: ActorEntity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::Id, tokio::sync::oneshot::Sender<Result<Option<T>, FrameworkError>>)> {
     match receiver.recv().await {
         Some(ResourceRequest::Get { id, respond_to }) => Some((id, respond_to)),
         _ => None,
@@ -259,7 +259,7 @@ pub async fn expect_get<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequest
 }
 
 /// Helper to verify that the next message is an Action request
-pub async fn expect_action<T: Entity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::Id, T::Action, tokio::sync::oneshot::Sender<Result<T::ActionResult, FrameworkError>>)> {
+pub async fn expect_action<T: ActorEntity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::Id, T::Action, tokio::sync::oneshot::Sender<Result<T::ActionResult, FrameworkError>>)> {
     match receiver.recv().await {
         Some(ResourceRequest::Action { id, action, respond_to }) => Some((id, action, respond_to)),
         _ => None,

@@ -14,29 +14,16 @@
 //! The application entry point is in [`main`], which demonstrates:
 //! 1.  Setting up the [`OrderSystem`].
 //! 2.  Creating a [`User`] and [`Product`].
-//! 3.  Placing an [`Order`].
+//! 3.  Placing [`Order`].
 //!
 //! ## 🧪 Testing
 //!
 //! See [`framework::mock`] for utilities to test clients without spawning full actors.
 
-mod model;
-mod clients;
-
-mod lifecycle;
-
-mod framework;
-mod user_actor;
-mod product_actor;
-mod order_actor;
-
-#[cfg(test)]
-mod integration_tests;
-
-
 use tracing::{error, info, Instrument};
-use crate::model::{User, Order, Product};
-use crate::lifecycle::{OrderSystem, setup_tracing};
+use actor_recipe::model::{User, Order, Product};
+use actor_recipe::lifecycle::{OrderSystem, setup_tracing};
+
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

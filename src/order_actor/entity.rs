@@ -1,20 +1,20 @@
-//! Entity trait implementation for the Order domain type.
+//! Entity trait implementation for the Order resource type.
 //!
-//! This module contains the [`Entity`] trait implementation
+//! This module contains the [`ActorEntity`] trait implementation
 //! that enables [`Order`] to be managed by the generic [`crate::framework::ResourceActor`].
 //!
 //! See the trait implementation on [`Order`] for method documentation.
 
-use crate::framework::Entity;
+use crate::framework::ActorEntity;
 use crate::model::{Order, OrderCreate};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
-/// Marker constant to verify Entity trait implementation exists at compile time.
+/// Marker constant to verify ActorEntity trait implementation exists at compile time.
 #[allow(dead_code)]
 pub const ENTITY_IMPL_PRESENT: bool = true;
 
-impl Entity for Order {
+impl ActorEntity for Order {
     type Id = String;
     type CreateParams = OrderCreate;
     type UpdateParams = (); // No updates for now

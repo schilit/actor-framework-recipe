@@ -1,10 +1,10 @@
 /// Represents a product in the inventory.
 ///
 /// # Actor Framework
-/// This struct implements the [`Entity`](crate::framework::Entity) trait,
+/// This struct implements the [`ActorEntity`](crate::framework::ActorEntity) trait,
 /// allowing it to be managed by a [`ResourceActor`](crate::framework::ResourceActor).
 ///
-/// See [`impl Entity for Product`](#impl-Entity-for-Product) for details on:
+/// See [`impl ActorEntity for Product`](#impl-ActorEntity-for-Product) for details on:
 /// - Creation parameters ([`ProductCreate`](crate::model::ProductCreate))
 /// - Update parameters ([`ProductUpdate`](crate::model::ProductUpdate))
 /// - Custom actions ([`ProductAction`](crate::product_actor::actions::ProductAction))

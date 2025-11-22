@@ -1,19 +1,19 @@
-use crate::framework::{Entity, ResourceClient, FrameworkError};
+use crate::framework::{ActorEntity, ResourceClient, FrameworkError};
 use async_trait::async_trait;
 
-/// Trait for domain-specific clients to inherit standard CRUD operations.
+/// Trait for resource-specific clients to inherit standard CRUD operations.
 ///
 /// This trait reduces boilerplate by providing default implementations for
 /// common operations like `get` and `delete`.
 #[async_trait]
-pub trait DomainClient<T: Entity>: Send + Sync {
-    /// The domain-specific error type.
+pub trait ActorClient<T: ActorEntity>: Send + Sync {
+    /// The resource-specific error type.
     type Error: From<String> + Send + Sync;
 
     /// Access the inner generic ResourceClient.
     fn inner(&self) -> &ResourceClient<T>;
 
-    /// Map framework errors to the specific domain error type.
+    /// Map framework errors to the specific resource error type.
     fn map_error(e: FrameworkError) -> Self::Error;
 
     /// Fetch an entity by ID.

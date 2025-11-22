@@ -3,7 +3,7 @@
 pub mod order_client;
 pub mod product_client;
 pub mod user_client;
-pub mod traits;
+pub mod actor_client;
 
 pub use product_client::*;
 pub use order_client::*;

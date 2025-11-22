@@ -1,10 +1,10 @@
 /// Represents a customer order.
 ///
 /// # Actor Framework
-/// This struct implements the [`Entity`](crate::framework::Entity) trait,
+/// This struct implements the [`ActorEntity`](crate::framework::ActorEntity) trait,
 /// allowing it to be managed by a [`ResourceActor`](crate::framework::ResourceActor).
 ///
-/// See [`impl Entity for Order`](#impl-Entity-for-Order) for details on:
+/// See [`impl ActorEntity for Order`](#impl-ActorEntity-for-Order) for details on:
 /// - Creation parameters ([`OrderCreate`])
 #[derive(Debug, Clone)]
 pub struct Order {

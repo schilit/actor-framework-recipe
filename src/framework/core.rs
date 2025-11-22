@@ -4,7 +4,7 @@
 //!
 //! ## Key Types
 //!
-//! - [`Entity`]: The trait that all domain objects must implement.
+//! - [`ActorEntity`]: The trait that all resource types must implement.
 //! - [`ResourceActor`]: The generic actor that manages entities.
 //! - [`ResourceClient`]: The generic client for communicating with actors.
 //! - [`FrameworkError`]: Common errors (e.g., ActorClosed, NotFound).
@@ -20,11 +20,11 @@ use tracing::{debug, info, warn};
 // 1. THE ABSTRACTION (Traits with Hooks, DTOs, and Actions)
 // =============================================================================
 
-/// Trait that any domain entity must implement to be managed by ResourceActor.
+/// Trait that any resource entity must implement to be managed by ResourceActor.
 ///
 /// # Architecture Note
 /// Why do we need this trait?
-/// By defining a contract (`Entity`) that all our domain objects (User, Product, Order)
+/// By defining a contract (`ActorEntity`) that all our resource types (User, Product, Order)
 /// must satisfy, we can write the `ResourceActor` logic *once* and reuse it everywhere.
 /// This is "Polymorphism" in action.
 ///
@@ -34,12 +34,12 @@ use tracing::{debug, info, warn};
 ///
 /// # Provided Methods (Hooks)
 /// This trait includes **Provided Methods** (methods with default implementations) for lifecycle hooks:
-/// - [`on_create`](Entity::on_create)
-/// - [`on_delete`](Entity::on_delete)
+/// - [`ActorEntity::on_create`]
+/// - [`ActorEntity::on_delete`]
 ///
 /// You do **not** need to implement these methods unless you want to customize behavior.
 /// The default implementation does nothing (`Ok(())`).
-pub trait Entity: Clone + Send + Sync + 'static {
+pub trait ActorEntity: Clone + Send + Sync + 'static {
     /// The unique identifier for this entity (e.g., String, Uuid, u64).
     type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
     
@@ -50,7 +50,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
     type UpdateParams: Send + Sync + Debug;
     
     // --- New: Custom Actions ---
-    /// Enum representing domain-specific operations (e.g., `ReserveStock`).
+    /// Enum representing resource-specific operations (e.g., `ReserveStock`).
     type Action: Send + Sync + Debug;
     
     /// The result type returned by custom actions.
@@ -92,7 +92,7 @@ pub trait Entity: Clone + Send + Sync + 'static {
 
     // --- Action Handler ---
     
-    /// Handle a custom domain-specific action.
+    /// Handle a custom resource-specific action.
     /// This is where the "business logic" for complex operations lives.
     fn handle_action(&mut self, action: Self::Action) -> Result<Self::ActionResult, String>;
 }
@@ -125,25 +125,25 @@ pub type Response<T> = oneshot::Sender<Result<T, FrameworkError>>;
 ///
 /// # Resource-Oriented Architecture
 /// This enum implements a **Resource-Oriented** design pattern where each actor manages a specific
-/// type of resource (the [`Entity`]). Instead of defining ad-hoc messages for every operation,
+/// type of resource (the [`ActorEntity`]). Instead of defining ad-hoc messages for every operation,
 /// we standardize around a set of lifecycle operations that apply to almost any persistent resource.
 ///
 /// # The CRUD Pattern
 /// The variants of this enum map directly to standard **CRUD** (Create, Read, Update, Delete) operations,
-/// plus a custom `Action` variant for domain-specific logic that doesn't fit the CRUD model.
+/// plus a custom `Action` variant for resource-specific logic that doesn't fit the CRUD model.
 ///
-/// - **Create**: Lifecycle start. Uses [`Entity::CreateParams`] to initialize a new resource.
+/// - **Create**: Lifecycle start. Uses [`ActorEntity::CreateParams`] to initialize a new resource.
 /// - **Get (Read)**: Retrieval. Fetches the current state of the resource by ID.
-/// - **Update**: State mutation. Uses [`Entity::UpdateParams`] to modify an existing resource.
+/// - **Update**: State mutation. Uses [`ActorEntity::UpdateParams`] to modify an existing resource.
 /// - **Delete**: Lifecycle end. Removes the resource.
-/// - **Action**: Extensibility. Executes a custom [`Entity::Action`].
+/// - **Action**: Extensibility. Executes a custom [`ActorEntity::Action`].
 ///
 /// # Entity Interaction
-/// This type is generic over `T: Entity`. It uses the associated types defined in the [`Entity`] trait
+/// This type is generic over `T: ActorEntity`. It uses the associated types defined in the [`ActorEntity`] trait
 /// (like `CreateParams`, `UpdateParams`, `Action`) to ensure type safety for every operation.
 /// This guarantees that you can't send a "User Create" payload to a "Product" actor.
 #[derive(Debug)]
-pub enum ResourceRequest<T: Entity> {
+pub enum ResourceRequest<T: ActorEntity> {
     Create {
         params: T::CreateParams,
         respond_to: Response<T::Id>,
@@ -184,13 +184,13 @@ pub enum ResourceRequest<T: Entity> {
 /// processes its own messages *sequentially* in a loop. This means we don't need
 /// `Mutex` or `RwLock` for the `store`! The "Actor Model" gives us safety through
 /// exclusive ownership of state within the task.
-pub struct ResourceActor<T: Entity> {
+pub struct ResourceActor<T: ActorEntity> {
     receiver: mpsc::Receiver<ResourceRequest<T>>,
     store: HashMap<T::Id, T>,
     next_id_fn: Box<dyn Fn() -> T::Id + Send + Sync>,
 }
 
-impl<T: Entity> ResourceActor<T> {
+impl<T: ActorEntity> ResourceActor<T> {
     pub fn new(
         buffer_size: usize, 
         next_id_fn: impl Fn() -> T::Id + Send + Sync + 'static
@@ -305,11 +305,11 @@ impl<T: Entity> ResourceActor<T> {
 
 /// A type-safe client for interacting with a `ResourceActor`.
 #[derive(Clone)]
-pub struct ResourceClient<T: Entity> {
+pub struct ResourceClient<T: ActorEntity> {
     sender: mpsc::Sender<ResourceRequest<T>>,
 }
 
-impl<T: Entity> ResourceClient<T> {
+impl<T: ActorEntity> ResourceClient<T> {
     pub fn new(sender: mpsc::Sender<ResourceRequest<T>>) -> Self {
         Self { sender }
     }
@@ -389,7 +389,7 @@ mod tests {
         Rename(String),
     }
 
-    impl Entity for SimpleUser {
+    impl ActorEntity for SimpleUser {
         type Id = String;
         type CreateParams = SimpleUserCreate;
         type UpdateParams = SimpleUserUpdate;

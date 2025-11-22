@@ -2,7 +2,7 @@ use tracing::{debug, instrument};
 use crate::model::Product;
 use crate::product_actor::ProductError;
 use crate::framework::{ResourceClient, FrameworkError};
-use crate::clients::traits::DomainClient;
+use crate::clients::actor_client::ActorClient;
 use async_trait::async_trait;
 
 /// Client for interacting with the Product actor.
@@ -18,7 +18,7 @@ impl ProductClient {
 }
 
 #[async_trait]
-impl DomainClient<Product> for ProductClient {
+impl ActorClient<Product> for ProductClient {
     type Error = ProductError;
 
     fn inner(&self) -> &ResourceClient<Product> {

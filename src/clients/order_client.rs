@@ -4,7 +4,7 @@ use crate::model::Order;
 use crate::order_actor::OrderError;
 use crate::framework::{ResourceClient, FrameworkError};
 use async_trait::async_trait;
-use crate::clients::traits::DomainClient;
+use crate::clients::actor_client::ActorClient;
 
 /// Client for interacting with the Order actor.
 ///
@@ -82,7 +82,7 @@ impl OrderClient {
 }
 
 #[async_trait]
-impl DomainClient<Order> for OrderClient {
+impl ActorClient<Order> for OrderClient {
     type Error = OrderError;
 
     fn inner(&self) -> &ResourceClient<Order> {

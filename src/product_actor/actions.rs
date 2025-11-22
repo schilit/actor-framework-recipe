@@ -1,6 +1,6 @@
 //! Custom actions for the Product actor.
 //!
-//! This module defines the domain-specific operations (Actions) that can be performed
+//! This module defines the resource-specific operations (Actions) that can be performed
 //! on a [`Product`](crate::model::Product) entity, such as checking stock or reserving items.
 //! These actions are handled by the [`Entity::handle_action`](crate::framework::Entity::handle_action) method.
 //!
@@ -8,7 +8,7 @@
 
 /// Custom actions for Product entities.
 ///
-/// These actions represent domain-specific operations that can be performed
+/// These actions represent resource-specific operations that can be performed
 /// on a product beyond standard CRUD operations.
 #[derive(Debug, Clone)]
 pub enum ProductAction {

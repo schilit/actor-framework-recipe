@@ -2,7 +2,7 @@ use tracing::{debug, instrument};
 use crate::model::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
 use crate::framework::{ResourceClient, FrameworkError};
-use crate::clients::traits::DomainClient;
+use crate::clients::actor_client::ActorClient;
 use async_trait::async_trait;
 
 /// Client for interacting with the User actor.
@@ -18,7 +18,7 @@ impl UserClient {
 }
 
 #[async_trait]
-impl DomainClient<User> for UserClient {
+impl ActorClient<User> for UserClient {
     type Error = UserError;
 
     fn inner(&self) -> &ResourceClient<User> {

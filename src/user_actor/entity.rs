@@ -1,21 +1,21 @@
-//! Entity trait implementation for the User domain type.
+//! Entity trait implementation for the User resource type.
 //!
-//! This module contains the [`Entity`] trait implementation
+//! This module contains the [`ActorEntity`] trait implementation
 //! that enables [`User`] to be managed by the generic [`crate::framework::ResourceActor`].
 //!
 //! See the trait implementation on [`User`] for method documentation.
 
-use crate::framework::Entity;
+use crate::framework::ActorEntity;
 use crate::model::{User, UserCreate, UserUpdate};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
-/// Marker constant to verify Entity trait implementation exists at compile time.
+/// Marker constant to verify ActorEntity trait implementation exists at compile time.
 /// This is used by the framework to ensure proper trait implementation.
 #[allow(dead_code)]
 pub const ENTITY_IMPL_PRESENT: bool = true;
 
-impl Entity for User {
+impl ActorEntity for User {
     type Id = String;
     type CreateParams = UserCreate;
     type UpdateParams = UserUpdate;

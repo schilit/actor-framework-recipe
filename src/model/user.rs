@@ -3,10 +3,10 @@ use serde::{Serialize, Deserialize};
 /// Represents a registered user in the system.
 ///
 /// # Actor Framework
-/// This struct implements the [`Entity`](crate::framework::Entity) trait,
+/// This struct implements the [`ActorEntity`](crate::framework::ActorEntity) trait,
 /// allowing it to be managed by a [`ResourceActor`](crate::framework::ResourceActor).
 ///
-/// See [`impl Entity for User`](#impl-Entity-for-User) for details on:
+/// See [`impl ActorEntity for User`](#impl-ActorEntity-for-User) for details on:
 /// - Creation parameters ([`UserCreate`])
 /// - Update parameters ([`UserUpdate`])
 #[derive(Debug, Clone, PartialEq)]
