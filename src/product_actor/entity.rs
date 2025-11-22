@@ -7,9 +7,10 @@
 //!
 //! See the trait implementation on [`Product`] for method documentation.
 
+use async_trait::async_trait;
 use crate::framework::ActorEntity;
 use crate::model::{Product, ProductCreate, ProductUpdate};
-use super::actions::{ProductAction, ProductActionResult};
+use crate::product_actor::{ProductAction, ProductActionResult};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
@@ -17,18 +18,20 @@ use super::actions::{ProductAction, ProductActionResult};
 #[allow(dead_code)]
 pub const ENTITY_IMPL_PRESENT: bool = true;
 
+#[async_trait]
 impl ActorEntity for Product {
     type Id = String;
     type CreateParams = ProductCreate;
     type UpdateParams = ProductUpdate;
     type Action = ProductAction;
     type ActionResult = ProductActionResult;
+    type Context = ();
 
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new Product from creation parameters.
     fn from_create_params(id: String, params: ProductCreate) -> Result<Self, String> {
-        Ok(Self::new(id, params.name, params.price, params.quantity))
+        Ok(Product::new(id, params.name, params.price, params.quantity))
     }
 
     /// Handles updates to the Product entity.
@@ -36,7 +39,7 @@ impl ActorEntity for Product {
     /// # Fields Updated
     /// - `price`: Product price
     /// - `quantity`: Available stock quantity
-    fn on_update(&mut self, update: ProductUpdate) -> Result<(), String> {
+    async fn on_update(&mut self, update: ProductUpdate, _ctx: &Self::Context) -> Result<(), String> {
         if let Some(price) = update.price {
             self.price = price;
         }
@@ -51,7 +54,7 @@ impl ActorEntity for Product {
     /// # Actions
     /// - `CheckStock`: Returns true if requested quantity is available
     /// - `ReserveStock`: Decrements stock if available, returns true on success
-    fn handle_action(&mut self, action: ProductAction) -> Result<ProductActionResult, String> {
+    async fn handle_action(&mut self, action: ProductAction, _ctx: &Self::Context) -> Result<ProductActionResult, String> {
         match action {
             ProductAction::CheckStock => {
                 Ok(ProductActionResult::CheckStock(self.quantity))

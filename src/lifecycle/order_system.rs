@@ -55,49 +55,26 @@ impl OrderSystem {
     ///
     /// A fully initialized `OrderSystem` with all actors running and ready to accept requests.
     pub fn new() -> Self {
-        // =====================================================================
-        // 1. Setup User Actor
-        // =====================================================================
-        
-        // Create the User actor and its client using the factory function
+        // 1. Create actors (no dependencies)
         let (user_actor, user_client) = crate::user_actor::new();
-        
-        // Spawn the actor in a background task
-        let user_handle = tokio::spawn(user_actor.run());
-
-        // =====================================================================
-        // 2. Setup Product Actor
-        // =====================================================================
-        
-        // Create the Product actor and its client using the factory function
         let (product_actor, product_client) = crate::product_actor::new();
-        
-        // Spawn the actor in a background task
-        let product_handle = tokio::spawn(product_actor.run());
+        let (order_actor, order_client) = crate::order_actor::new();
 
-        // =====================================================================
-        // 3. Setup Order Actor (with dependencies)
-        // =====================================================================
+        // 2. Start actors with injected context
+        // User and Product have no dependencies (Context = ())
+        let user_handle = tokio::spawn(user_actor.run(()));
+        let product_handle = tokio::spawn(product_actor.run(()));
         
-        // Create the Order actor and its client using the factory function
-        // Dependencies are injected here
-        let (order_actor, order_client) = crate::order_actor::new(
+        // Order actor needs User and Product clients (Context = (UserClient, ProductClient))
+        let order_handle = tokio::spawn(order_actor.run((
             user_client.clone(),
             product_client.clone()
-        );
-        
-        // Spawn the actor in a background task
-        let order_handle = tokio::spawn(order_actor.run());
+        )));
 
-        // =====================================================================
-        // Return the fully initialized system
-        // =====================================================================
-        
         Self {
             order_client,
             user_client,
             product_client,
-            // Store handles for graceful shutdown
             handles: vec![user_handle, product_handle, order_handle],
         }
     }

@@ -5,8 +5,14 @@
 //!
 //! See the trait implementation on [`User`] for method documentation.
 
+use async_trait::async_trait;
 use crate::framework::ActorEntity;
 use crate::model::{User, UserCreate, UserUpdate};
+
+#[derive(Debug)]
+pub enum UserAction {
+    // No custom actions for now
+}
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
@@ -15,18 +21,20 @@ use crate::model::{User, UserCreate, UserUpdate};
 #[allow(dead_code)]
 pub const ENTITY_IMPL_PRESENT: bool = true;
 
+#[async_trait]
 impl ActorEntity for User {
     type Id = String;
     type CreateParams = UserCreate;
     type UpdateParams = UserUpdate;
-    type Action = (); 
+    type Action = UserAction;
     type ActionResult = ();
+    type Context = ();
 
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new User from creation parameters.
-    fn from_create_params(_id: String, params: UserCreate) -> Result<Self, String> {
-        Ok(Self::new(params.name, params.email))
+    fn from_create_params(id: String, params: UserCreate) -> Result<Self, String> {
+        Ok(User { id, name: params.name, email: params.email })
     }
 
     /// Handles updates to the User entity.
@@ -34,7 +42,7 @@ impl ActorEntity for User {
     /// # Fields Updated
     /// - `name`: User's display name
     /// - `email`: User's email address
-    fn on_update(&mut self, update: UserUpdate) -> Result<(), String> {
+    async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context) -> Result<(), String> {
         if let Some(name) = update.name {
             self.name = name;
         }
@@ -44,7 +52,7 @@ impl ActorEntity for User {
         Ok(())
     }
 
-    fn handle_action(&mut self, _action: Self::Action) -> Result<Self::ActionResult, String> {
+    async fn handle_action(&mut self, _action: UserAction, _ctx: &Self::Context) -> Result<(), String> {
         Ok(())
     }
 }

@@ -39,6 +39,19 @@ use tracing::{debug, info, warn};
 ///
 /// You do **not** need to implement these methods unless you want to customize behavior.
 /// The default implementation does nothing (`Ok(())`).
+use async_trait::async_trait;
+
+/// Trait that any resource entity must implement to be managed by ResourceActor.
+///
+/// # Architecture Note
+/// By defining a contract (`ActorEntity`) that all our resource types (User, Product, Order)
+/// must satisfy, we can write the `ResourceActor` logic *once* and reuse it everywhere.
+///
+/// # Async & Context
+/// This trait is `#[async_trait]` to allow asynchronous operations in hooks (e.g., calling other actors).
+/// It also defines a `Context` type, which is injected into every hook. This allows "Late Binding"
+/// of dependencies (passing clients to `run()` instead of `new()`).
+#[async_trait]
 pub trait ActorEntity: Clone + Send + Sync + 'static {
     /// The unique identifier for this entity (e.g., String, Uuid, u64).
     type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
@@ -49,52 +62,36 @@ pub trait ActorEntity: Clone + Send + Sync + 'static {
     /// The data required to update an existing instance.
     type UpdateParams: Send + Sync + Debug;
     
-    // --- New: Custom Actions ---
     /// Enum representing resource-specific operations (e.g., `ReserveStock`).
     type Action: Send + Sync + Debug;
     
     /// The result type returned by custom actions.
     type ActionResult: Send + Sync + Debug;
 
+    /// The runtime context (dependencies) injected into the actor.
+    /// Use `()` if no dependencies are needed.
+    type Context: Send + Sync;
+
     /// Construct the full Entity from the ID and Payload.
-    /// This is called by the actor when it receives a `Create` request.
+    /// This is called synchronously before `on_create`.
     fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, String>;
 
-    // --- Lifecycle Hooks ---
+    // --- Lifecycle Hooks (Async) ---
 
     /// Called immediately after the entity is created and initialized.
-    ///
-    /// Use this hook to perform any post-creation logic, such as logging,
-    /// sending notifications, or initializing dependent resources.
-    ///
-    /// # Default Implementation
-    /// Returns `Ok(())` (no-op).
-    fn on_create(&mut self) -> Result<(), String> { Ok(()) }
+    /// Use this hook to perform validation or side effects (e.g., checking other actors).
+    async fn on_create(&mut self, _ctx: &Self::Context) -> Result<(), String> { Ok(()) }
 
     /// Called when an update request is received.
-    ///
-    /// This is the primary mechanism for modifying the entity's state.
-    /// You must implement this method to apply the changes from `UpdateParams`
-    /// to the entity's fields.
-    ///
-    /// # Arguments
-    /// * `update` - The data object containing the updates to apply.
-    fn on_update(&mut self, update: Self::UpdateParams) -> Result<(), String>;
+    async fn on_update(&mut self, update: Self::UpdateParams, _ctx: &Self::Context) -> Result<(), String>;
 
     /// Called immediately before the entity is removed from the system.
-    ///
-    /// Use this hook to perform cleanup tasks, such as releasing external resources,
-    /// archiving data, or notifying other parts of the system.
-    ///
-    /// # Default Implementation
-    /// Returns `Ok(())` (no-op).
-    fn on_delete(&self) -> Result<(), String> { Ok(()) }
+    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), String> { Ok(()) }
 
-    // --- Action Handler ---
+    // --- Action Handler (Async) ---
     
     /// Handle a custom resource-specific action.
-    /// This is where the "business logic" for complex operations lives.
-    fn handle_action(&mut self, action: Self::Action) -> Result<Self::ActionResult, String>;
+    async fn handle_action(&mut self, action: Self::Action, _ctx: &Self::Context) -> Result<Self::ActionResult, String>;
 }
 
 // =============================================================================
@@ -207,9 +204,11 @@ impl<T: ActorEntity> ResourceActor<T> {
 
     /// Runs the actor's event loop, processing messages until the channel closes.
     ///
-    /// This is the heart of the actor - it processes messages sequentially,
-    /// ensuring thread-safe access to the internal store without locks.
-    pub async fn run(mut self) {
+    /// # Context Injection
+    /// The `context` argument is injected into every entity hook. This allows entities
+    /// to access external dependencies (like other clients) that were created *after*
+    /// the actor was instantiated but *before* the loop started.
+    pub async fn run(mut self, context: T::Context) {
         // Extract just the type name (e.g., "User" instead of "actor_recipe::model::user::User")
         let entity_type = std::any::type_name::<T>()
             .split("::")
@@ -225,7 +224,8 @@ impl<T: ActorEntity> ResourceActor<T> {
                     
                     match T::from_create_params(id.clone(), params) {
                         Ok(mut item) => {
-                            if let Err(e) = item.on_create() {
+                            // Await the async hook
+                            if let Err(e) = item.on_create(&context).await {
                                 warn!(entity_type, error = %e, "on_create failed");
                                 let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                                 continue;
@@ -249,7 +249,8 @@ impl<T: ActorEntity> ResourceActor<T> {
                 ResourceRequest::Update { id, update, respond_to } => {
                     debug!(entity_type, %id, ?update, "Update");
                     if let Some(item) = self.store.get_mut(&id) {
-                        if let Err(e) = item.on_update(update) {
+                        // Await the async hook
+                        if let Err(e) = item.on_update(update, &context).await {
                             warn!(entity_type, %id, error = %e, "Update failed");
                             let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                             continue;
@@ -264,7 +265,8 @@ impl<T: ActorEntity> ResourceActor<T> {
                 ResourceRequest::Delete { id, respond_to } => {
                     debug!(entity_type, %id, "Delete");
                     if let Some(item) = self.store.get(&id) {
-                        if let Err(e) = item.on_delete() {
+                        // Await the async hook
+                        if let Err(e) = item.on_delete(&context).await {
                             warn!(entity_type, %id, error = %e, "on_delete failed");
                             let _ = respond_to.send(Err(FrameworkError::Custom(e)));
                             continue;
@@ -280,7 +282,8 @@ impl<T: ActorEntity> ResourceActor<T> {
                 ResourceRequest::Action { id, action, respond_to } => {
                     debug!(entity_type, %id, ?action, "Action");
                     if let Some(item) = self.store.get_mut(&id) {
-                        let result = item.handle_action(action)
+                        // Await the async hook
+                        let result = item.handle_action(action, &context).await
                             .map_err(FrameworkError::Custom);
                         match &result {
                             Ok(_) => info!(entity_type, %id, "Action ok"),
@@ -389,12 +392,14 @@ mod tests {
         Rename(String),
     }
 
+    #[async_trait]
     impl ActorEntity for SimpleUser {
         type Id = String;
         type CreateParams = SimpleUserCreate;
         type UpdateParams = SimpleUserUpdate;
         type Action = UserAction;
         type ActionResult = bool;
+        type Context = ();
 
         // fn id(&self) -> &String { &self.id }
 
@@ -407,14 +412,14 @@ mod tests {
             })
         }
 
-        fn on_update(&mut self, update: SimpleUserUpdate) -> Result<(), String> {
+        async fn on_update(&mut self, update: SimpleUserUpdate, _ctx: &Self::Context) -> Result<(), String> {
             if let Some(name) = update.name {
                 self.name = name;
             }
             Ok(())
         }
 
-        fn handle_action(&mut self, action: UserAction) -> Result<bool, String> {
+        async fn handle_action(&mut self, action: UserAction, _ctx: &Self::Context) -> Result<bool, String> {
             match action {
                 UserAction::PromoteToAdmin => {
                     if self.is_admin {
@@ -445,7 +450,7 @@ mod tests {
 
         // Start Actor
         let (actor, client) = ResourceActor::new(10, next_id);
-        tokio::spawn(actor.run());
+        tokio::spawn(actor.run(()));
 
         // 1. Create
         let payload = SimpleUserCreate { name: "Alice".into() };

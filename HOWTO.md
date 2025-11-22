@@ -183,7 +183,9 @@ pub fn new() -> (ResourceActor<User>, UserClient) {
 
 ### Step 5: Wire It Into the System
 
-In `src/lifecycle/order_system.rs`, usage becomes much cleaner:
+In `src/lifecycle/order_system.rs`, usage becomes much cleaner with the factory pattern.
+
+**Important**: Actors now use **Context Injection** via `run()`. Dependencies are passed when starting the actor, not when creating it.
 
 ```rust
 use crate::user_actor;
@@ -193,16 +195,21 @@ impl OrderSystem {
         // 1. Create Actor & Client using the factory
         let (user_actor, user_client) = user_actor::new();
 
-        // 2. Spawn the actor
-        let user_actor_handle = tokio::spawn(user_actor.run());
+        // 2. Spawn the actor with context (User has no dependencies, so pass ())
+        let user_actor_handle = tokio::spawn(user_actor.run(()));
 
         Self {
             user_client,
-            user_actor_handle,
+            handles: vec![user_actor_handle],
         }
     }
 }
 ```
+
+**Key Points**:
+- `user_actor::new()` creates the actor and client (no dependencies)
+- `user_actor.run(())` starts the actor with an empty context (User has no dependencies)
+- For actors with dependencies, you pass them to `run()` (see Advanced Patterns below)
 
 **That's it!** You now have a fully functional `User` actor with a clean initialization API.
 
@@ -419,7 +426,13 @@ async fn test_order_client_orchestration() {
         product_client
     );
 
-    // 4. Execute
+    // 4. Test OrderClient::create_order
+    // 
+    // This method contains the orchestration logic we are testing.
+    // Internally, `create_order` calls:
+    // 1. `user_client.get()` to validate the user
+    // 2. `product_client.reserve_stock()` to check/update stock
+    // 3. `order_actor.create()` to finally create the order
     let order = Order::new("order_1", "user_1", "product_1", 5, 50.0);
     let result = order_client.create_order(order).await;
 
@@ -453,21 +466,11 @@ async fn test_order_client_orchestration() {
 ```rust
 #[tokio::test]
 async fn test_product_stock_management() {
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    
-    // Create a single Product actor
-    let product_id_counter = Arc::new(AtomicU64::new(1));
-    let (product_actor, product_resource_client) = ResourceActor::<Product>::new(32, move || {
-        let id = product_id_counter.fetch_add(1, Ordering::SeqCst);
-        format!("product_{}", id)
-    });
+    // Create a single Product actor using the factory
+    let (product_actor, product_client) = crate::product_actor::new();
     
     // Spawn the actor
     let actor_handle = tokio::spawn(product_actor.run());
-    
-    // Create the client
-    let product_client = ProductClient::new(product_resource_client);
     
     // Test: Create a product
     let product = Product::new("", "Widget", 10.0, 100);
@@ -530,20 +533,16 @@ async fn test_order_actor_with_mocked_dependencies() {
     product_mock.expect_action("product_1".to_string())
         .return_ok(ProductActionResult::ReserveStock(()));
 
-    // Create REAL Order actor
-    let order_id_counter = Arc::new(AtomicU64::new(1));
-    let (order_actor, order_resource_client) = ResourceActor::<Order>::new(32, move || {
-        let id = order_id_counter.fetch_add(1, Ordering::SeqCst);
-        format!("order_{}", id)
-    });
-
-    // Spawn the real actor
-    let actor_handle = tokio::spawn(order_actor.run());
-
-    // Create OrderClient with real Order actor but mocked dependencies
+    // Create clients from mocks
     let user_client = UserClient::new(user_mock.client());
     let product_client = ProductClient::new(product_mock.client());
-    let order_client = OrderClient::new(order_resource_client, user_client, product_client);
+
+    // Create REAL Order actor using factory function
+    // We inject the clients derived from mocks!
+    let (order_actor, order_client) = crate::order_actor::new(
+        user_client.clone(), 
+        product_client.clone()
+    );
 
     // Execute: This will run through the REAL Order actor
     let order = Order::new("", "user_1", "product_1", 3, 75.0);
@@ -644,15 +643,22 @@ async fn test_full_order_system_integration() {
 
 ### Advanced: Test-Only Actions
 
-Sometimes you need to inspect internal actor state for testing. You can add test-only actions:
+Sometimes you need to inspect internal actor state for testing. Use a Cargo **feature flag** instead of `#[cfg(test)]` so it works with integration tests.
 
+**Step 1: Add feature to `Cargo.toml`**:
+```toml
+[features]
+testing = []  # Enable test-only functionality
+```
+
+**Step 2: Guard test-only actions with the feature**:
 ```rust
 #[derive(Debug, Clone)]
 pub enum ProductAction {
     CheckStock,
     ReserveStock(u32),
     
-    #[cfg(test)]
+    #[cfg(feature = "testing")]
     GetInternalState, // Test-only action
 }
 
@@ -661,7 +667,7 @@ pub enum ProductActionResult {
     CheckStock(u32),
     ReserveStock(()),
     
-    #[cfg(test)]
+    #[cfg(feature = "testing")]
     GetInternalState {
         quantity: u32,
         reserved: u32,
@@ -670,7 +676,9 @@ pub enum ProductActionResult {
 }
 
 impl ActorEntity for Product {
-    fn handle_action(&mut self, action: ProductAction) -> Result<ProductActionResult, String> {
+    async fn handle_action(&mut self, action: ProductAction, _ctx: &Self::Context) 
+        -> Result<ProductActionResult, String> 
+    {
         match action {
             ProductAction::CheckStock => {
                 Ok(ProductActionResult::CheckStock(self.quantity))
@@ -678,11 +686,11 @@ impl ActorEntity for Product {
             ProductAction::ReserveStock(quantity) => {
                 // ... normal logic
             }
-            #[cfg(test)]
+            #[cfg(feature = "testing")]
             ProductAction::GetInternalState => {
                 Ok(ProductActionResult::GetInternalState {
                     quantity: self.quantity,
-                    reserved: self.reserved_quantity,
+                    reserved: self.reserved,
                     pending_orders: self.pending_orders.len(),
                 })
             }
@@ -691,9 +699,17 @@ impl ActorEntity for Product {
 }
 ```
 
-**Use case**: When you need to verify internal state that isn't exposed through normal APIs.
+**Step 3: Run tests with the feature enabled**:
+```bash
+cargo test --features testing
+```
 
-**Best practice**: Use `#[cfg(test)]` to ensure test-only code doesn't ship to production.
+**Why use a feature instead of `#[cfg(test)]`?**
+- `#[cfg(test)]` only works for unit tests in the same crate
+- Integration tests in `tests/` directory can't access `#[cfg(test)]` code
+- Features work everywhere: unit tests, integration tests, and even production (if needed)
+
+**Use case**: When you need to verify internal state that isn't exposed through normal APIs.
 
 ---
 
