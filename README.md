@@ -155,13 +155,13 @@ The framework uses the `tracing` crate with a compact format that hides the crat
 
 ### Debug Flag for Full Payload
 When you run the application with `RUST_LOG=debug`, the `create_order` function logs the full `Order` payload **once** at the start of the request:
-```rust
+```rust,ignore
 debug!(?order, "create_order called");
 ```
 The `?` syntax is a `tracing` macro feature that records the variable using its `Debug` representation as a structured field.
 
 Running with `RUST_LOG=debug` will show:
-```
+```text
 DEBUG create_order called order={...}
 INFO order_processing:create_order: Processing create_order request (Client Side)
 ```
@@ -183,7 +183,7 @@ RUST_LOG=trace cargo run
 
 The tracing output shows the complete order creation workflow with hierarchical spans. Here's what you'll see when creating an order:
 
-```
+```text
 INFO Sending create_order to actor
 INFO Created user_id="user_1" size=1
 INFO Created product_id="product_1" size=1
@@ -193,7 +193,7 @@ INFO Created order_id="order_1" size=1
 
 **With `RUST_LOG=debug`**, you'll see the full Order payload and validation flow:
 
-```
+```text
 DEBUG create_order called order=Order { id: "", user_id: "user_1", product_id: "product_1", quantity: 3, total: 75.0 }
 INFO Sending create_order to actor
 DEBUG Get user_id="user_1"
