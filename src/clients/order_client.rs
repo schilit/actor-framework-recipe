@@ -1,3 +1,7 @@
+//! # Order Client
+//!
+//! Provides a high‑level API for interacting with the `Order` actor.
+//! It wraps a `ResourceClient<Order>` and handles orchestration logic.
 use crate::clients::actor_client::ActorClient;
 use crate::framework::{FrameworkError, ResourceClient};
 use crate::model::Order;

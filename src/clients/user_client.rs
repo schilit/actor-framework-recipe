@@ -1,3 +1,7 @@
+//! # User Client
+//!
+//! Provides a high‑level API for interacting with the `User` actor.
+//! It wraps a `ResourceClient<User>` and exposes domain‑specific methods.
 use crate::clients::actor_client::ActorClient;
 use crate::framework::{FrameworkError, ResourceClient};
 use crate::model::{User, UserCreate, UserUpdate};

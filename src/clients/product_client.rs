@@ -1,3 +1,7 @@
+//! # Product Client
+//!
+//! Provides a high‑level API for interacting with the `Product` actor.
+//! It wraps a `ResourceClient<Product>` and exposes domain‑specific methods.
 use crate::clients::actor_client::ActorClient;
 use crate::framework::{FrameworkError, ResourceClient};
 use crate::model::Product;
