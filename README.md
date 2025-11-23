@@ -21,7 +21,7 @@ This framework combines **Resource-Oriented Architecture (ROA)** with the **Acto
 
 📖 **[Read the complete architectural rationale](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/index.html#why-roa--actor-model)** in the framework module documentation.
 
-### 1. The Core Abstraction ([`framework`](src/framework/mod.rs))
+### 1. The Core Abstraction ([`framework`](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/index.html))
 Instead of writing ad-hoc loops for every actor, we define a generic `ResourceActor<T>`.
 -   **`ActorEntity` Trait**: Defines *what* your actor manages (State + Behavior).
 -   **`ResourceActor`**: Defines *how* it runs (Runtime with async context injection).
@@ -31,7 +31,7 @@ Instead of writing ad-hoc loops for every actor, we define a generic `ResourceAc
 
 📖 **[View framework documentation](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/index.html)** - Architecture overview, context injection, concurrency model
 
-### 2. The Orchestrator ([`lifecycle`](src/lifecycle/mod.rs))
+### 2. The Orchestrator ([`lifecycle`](https://schilit.github.io/actor-framework-recipe/actor_recipe/lifecycle/index.html))
 Actors don't exist in a vacuum. The `OrderSystem` acts as the "dependency injection container" and lifecycle manager.
 -   It spins up all actors (`User`, `Product`, `Order`).
 -   It wires them together via **context injection** (passing clients to `run()`).
@@ -39,7 +39,7 @@ Actors don't exist in a vacuum. The `OrderSystem` acts as the "dependency inject
 
 📖 **[View lifecycle documentation](https://schilit.github.io/actor-framework-recipe/actor_recipe/lifecycle/index.html)** - Orchestration patterns, dependency injection, graceful shutdown
 
-### 3. The Clients ([`clients`](src/clients/mod.rs))
+### 3. The Clients ([`clients`](https://schilit.github.io/actor-framework-recipe/actor_recipe/clients/index.html))
 We don't expose raw message passing to the rest of the app. Instead, we wrap `ResourceClient` in domain-specific clients (e.g., `UserClient`).
 -   **Type Safety**: Each client provides strongly-typed methods for its domain
 -   **Error Mapping**: We use **type-safe errors** (`UserError`, `ProductError`) instead of strings, enabling pattern matching and preserving error context.
