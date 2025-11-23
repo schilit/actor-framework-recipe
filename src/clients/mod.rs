@@ -16,7 +16,11 @@
 //!
 //! ## Example: UserClient
 //!
-//! ```rust,ignore
+//! ```rust
+//! use actor_recipe::framework::ResourceClient;
+//! use actor_recipe::model::{User, UserCreate};
+//! use actor_recipe::user_actor::UserError;
+//!
 //! #[derive(Clone)]
 //! pub struct UserClient {
 //!     inner: ResourceClient<User>,
