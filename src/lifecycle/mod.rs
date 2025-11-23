@@ -8,8 +8,7 @@
 //! In actor systems, individual actors are simple, but **wiring them together** is where
 //! complexity lives. This module provides the "conductor" that coordinates the entire system.
 //!
-//! ### Key Responsibilities
-//!
+//! **Key Responsibilities:**
 //! 1. **Actor Creation** - Instantiate all actors and their clients
 //! 2. **Dependency Injection** - Wire actors together via context injection
 //! 3. **Lifecycle Management** - Start actors in the correct order
@@ -66,8 +65,6 @@
 //! This pattern allows `Order` to depend on `User` and `Product` without creating
 //! circular references during construction.
 //!
-//! ### Context Types
-//!
 //! Each actor defines its `Context` associated type:
 //!
 //! ```rust,ignore
@@ -93,9 +90,7 @@
 //!
 //! This ensures no messages are lost and all actors terminate cleanly.
 //!
-//! ### Shutdown with Context Dependencies
-//!
-//! When actors hold clients in their context (e.g., `Order` actor has `UserClient` and
+//! **With Context Dependencies:** When actors hold clients in their context (e.g., `Order` actor has `UserClient` and
 //! `ProductClient`), those clients are clones and won't prevent shutdown as long as the
 //! dependency graph is **acyclic**. Each actor shuts down when its own channel closes.
 //!
@@ -112,8 +107,7 @@
 //! - Request flows with complete context
 //! - Errors with detailed entity IDs
 //!
-//! ### Quick Start
-//!
+//! **Usage:**
 //! ```bash
 //! RUST_LOG=info cargo run      # Compact logs
 //! RUST_LOG=debug cargo run     # Full payloads

@@ -51,7 +51,7 @@ src/
 
 ## Usage
 
-### Run the Demo
+Run the demo:
 ```bash
 # Run with info logs
 RUST_LOG=info cargo run
@@ -63,7 +63,7 @@ RUST_LOG=debug cargo run
 RUST_LOG=actor_recipe::framework=debug cargo run
 ```
 
-### Run Tests
+Run tests:
 ```bash
 cargo test
 ```
