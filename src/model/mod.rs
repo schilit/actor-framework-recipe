@@ -1,8 +1,8 @@
-//! # Domain Models & Data Transfer Objects
+//! # Resource Models & Data Transfer Objects
 //!
 //! This module contains the **pure data structures** that represent the core business entities
-//! in the system. These types are shared across the entire application and form the public
-//! contract between actors and their clients.
+//! (resources) in the system. These types are shared across the entire application and form
+//! the public contract between actors and their clients.
 //!
 //! ## Architecture Principles
 //!
@@ -18,6 +18,10 @@
 //! ### 2. DTOs vs Entities
 //!
 //! We distinguish between different types of data structures:
+//!
+//! **DTO (Data Transfer Object)** - A design pattern for objects that carry data between
+//! processes or layers. DTOs have no business logic, only data fields. In this framework,
+//! we use DTOs to represent different "views" of an entity for different operations.
 //!
 //! **Entity** - The full resource with all fields:
 //! ```rust,ignore
@@ -47,7 +51,10 @@
 //! This pattern ensures type safety: you **can't** create a user without a name,
 //! but you **can** update just the email without touching the name.
 //!
-//! ## Domain Models
+//! ## Resource Models
+//!
+//! A **resource** is a business entity that the system manages (User, Product, Order).
+//! Each resource has its own actor and follows the CRUD pattern.
 //!
 //! ### [`User`]
 //!
@@ -83,7 +90,7 @@
 //! This structure is designed to support splitting into multiple crates:
 //!
 //! ```text
-//! my-domain/        # Pure domain models (this module)
+//! my-resources/     # Pure resource models (this module)
 //! my-actors/        # Actor implementations
 //! my-framework/     # Generic framework code
 //! ```

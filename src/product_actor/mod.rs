@@ -1,4 +1,59 @@
-//! Product-specific resource logic, including stock management actions.
+//! # Product Actor
+//!
+//! This module implements the Product resource actor with inventory management and custom actions.
+//!
+//! ## Overview
+//!
+//! The Product actor demonstrates how to add custom domain-specific actions beyond CRUD operations.
+//! It manages product catalog and inventory, with actions for checking and reserving stock.
+//!
+//! ## Structure
+//!
+//! - [`entity`] - [`ActorEntity`](crate::framework::ActorEntity) implementation for [`Product`](crate::model::Product)
+//! - [`error`] - [`ProductError`] type for type-safe error handling
+//! - [`actions`] - [`ProductAction`] and [`ProductActionResult`] for stock management
+//! - [`new()`] - Factory function that creates the actor and client
+//!
+//! ## Custom Actions
+//!
+//! The Product actor showcases the Action pattern for domain-specific operations:
+//!
+//! ```rust,ignore
+//! // Check current stock level (read-only)
+//! let stock = product_client.check_stock(product_id).await?;
+//!
+//! // Reserve stock for an order (mutating, can fail)
+//! product_client.reserve_stock(product_id, quantity).await?;
+//! ```
+//!
+//! ## Usage
+//!
+//! ```rust,ignore
+//! use crate::product_actor;
+//!
+//! // Create actor and client
+//! let (actor, client) = product_actor::new();
+//!
+//! // Start the actor (no dependencies)
+//! tokio::spawn(actor.run(()));
+//!
+//! // Create a product
+//! let product = ProductCreate {
+//!     name: "Widget".into(),
+//!     price: 29.99,
+//!     quantity: 100,
+//! };
+//! let id = client.create(product).await?;
+//!
+//! // Reserve stock
+//! client.reserve_stock(id, 5).await?;
+//! ```
+//!
+//! ## Key Features
+//!
+//! - **Custom actions**: Stock management via [`ProductAction`]
+//! - **Business logic validation**: `reserve_stock` fails if insufficient inventory
+//! - **Type-safe results**: Actions return strongly-typed [`ProductActionResult`]
 
 mod actions;
 pub mod entity;

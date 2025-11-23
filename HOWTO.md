@@ -389,9 +389,9 @@ impl ActorEntity for User {
 
 ## How to Write Tests
  
-Comprehensive testing documentation has been moved to the **[Mock Framework & Testing Guide](src/framework/mock.rs)** module.
+Comprehensive testing documentation is available in the **[Mock Framework & Testing Guide](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/mock/index.html)**.
  
-Please run `cargo doc --open` and navigate to `framework::mock`, or view [src/framework/mock.rs](src/framework/mock.rs) directly to see the complete guide on:
+The guide covers:
 - **Pattern 0**: Client Logic Test (Pure Mock)
 - **Pattern 1**: Single Actor Test
 - **Pattern 2**: Actor with Mocked Dependencies

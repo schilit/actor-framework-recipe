@@ -93,6 +93,15 @@
 //!
 //! This ensures no messages are lost and all actors terminate cleanly.
 //!
+//! ### Shutdown with Context Dependencies
+//!
+//! When actors hold clients in their context (e.g., `Order` actor has `UserClient` and
+//! `ProductClient`), those clients are clones and won't prevent shutdown as long as the
+//! dependency graph is **acyclic**. Each actor shuts down when its own channel closes.
+//!
+//! **For cyclic dependencies**: Use an explicit `Shutdown` action instead of relying on
+//! channel closure. This ensures deterministic shutdown order regardless of dependency structure.
+//!
 //! ## Observability & Tracing
 //!
 //! The [`setup_tracing`] function initializes structured logging for the entire system.

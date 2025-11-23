@@ -1,4 +1,39 @@
-//! User-specific resource logic and entity implementation.
+//! # User Actor
+//!
+//! This module implements the User resource actor, managing user entities with CRUD operations.
+//!
+//! ## Overview
+//!
+//! The User actor is the simplest example in the system, demonstrating the basic actor pattern
+//! without dependencies or custom actions. It manages user registration and profile information.
+//!
+//! ## Structure
+//!
+//! - [`entity`] - [`ActorEntity`](crate::framework::ActorEntity) implementation for [`User`](crate::model::User)
+//! - [`error`] - [`UserError`] type for type-safe error handling
+//! - [`new()`] - Factory function that creates the actor and client
+//!
+//! ## Usage
+//!
+//! ```rust,ignore
+//! use crate::user_actor;
+//!
+//! // Create actor and client
+//! let (actor, client) = user_actor::new();
+//!
+//! // Start the actor (no dependencies, so context is ())
+//! tokio::spawn(actor.run(()));
+//!
+//! // Use the client
+//! let user = UserCreate { name: "Alice".into(), email: "alice@example.com".into() };
+//! let id = client.create(user).await?;
+//! ```
+//!
+//! ## Key Features
+//!
+//! - **No dependencies**: User actor has no context dependencies (Context = ())
+//! - **Sequential ID generation**: Uses atomic counter for deterministic IDs
+//! - **Type-safe errors**: All operations return `Result<T, UserError>`
 
 pub mod entity;
 pub mod error;

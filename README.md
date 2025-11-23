@@ -19,7 +19,7 @@ This framework combines **Resource-Oriented Architecture (ROA)** with the **Acto
 - Isolated state with message-passing concurrency (Actor Model)
 - Independent scaling and maintainability
 
-📖 **[Read the complete architectural rationale](src/framework/mod.rs)** - Learn about the synergies, design patterns, and further reading. Run `cargo doc --open` and navigate to the `framework` module.
+📖 **[Read the complete architectural rationale](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/index.html#why-roa--actor-model)** in the framework module documentation.
 
 ### 1. The Core Abstraction ([`framework`](src/framework/mod.rs))
 Instead of writing ad-hoc loops for every actor, we define a generic `ResourceActor<T>`.
@@ -29,7 +29,7 @@ Instead of writing ad-hoc loops for every actor, we define a generic `ResourceAc
 
 **Why?** This separates the *business logic* (your entity) from the *plumbing* (channels, message loops, error handling).
 
-📖 **[View framework documentation](src/framework/mod.rs)** | Run `cargo doc --open` and navigate to the `framework` module
+📖 **[View framework documentation](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/index.html)** - Architecture overview, context injection, concurrency model
 
 ### 2. The Orchestrator ([`lifecycle`](src/lifecycle/mod.rs))
 Actors don't exist in a vacuum. The `OrderSystem` acts as the "dependency injection container" and lifecycle manager.
@@ -37,14 +37,14 @@ Actors don't exist in a vacuum. The `OrderSystem` acts as the "dependency inject
 -   It wires them together via **context injection** (passing clients to `run()`).
 -   It handles graceful shutdown.
 
-📖 **[View lifecycle documentation](src/lifecycle/mod.rs)** | Run `cargo doc --open` and navigate to the `lifecycle` module
+📖 **[View lifecycle documentation](https://schilit.github.io/actor-framework-recipe/actor_recipe/lifecycle/index.html)** - Orchestration patterns, dependency injection, graceful shutdown
 
 ### 3. The Clients ([`clients`](src/clients/mod.rs))
 We don't expose raw message passing to the rest of the app. Instead, we wrap `ResourceClient` in domain-specific clients (e.g., `UserClient`).
 -   **Type Safety**: Each client provides strongly-typed methods for its domain
 -   **Error Mapping**: We use **type-safe errors** (`UserError`, `ProductError`) instead of strings, enabling pattern matching and preserving error context.
 
-📖 **[View client documentation](src/clients/mod.rs)** | Run `cargo doc --open` and navigate to the `clients` module
+📖 **[View client documentation](https://schilit.github.io/actor-framework-recipe/actor_recipe/clients/index.html)** - Wrapper pattern, type-safe errors, orchestration examples
 
 ---
 
@@ -55,7 +55,7 @@ You'll see `ResourceActor<T: ActorEntity>` everywhere. This means "I can be an a
 -   **Benefit**: We wrote the message processing loop **once**, and it works for Users, Products, and Orders.
 -   **Trade-off**: The code looks more complex initially, but it saves thousands of lines of duplicate code in the long run.
 
-📖 **[View framework module](src/framework/mod.rs)** | Run `cargo doc --open`
+📖 **[View framework module](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/index.html)** for detailed documentation
 
 ### Mocking: Testing without Pain
 Testing actors can be hard because they are asynchronous. We solved this in `src/framework/mock.rs`.
@@ -64,7 +64,7 @@ Testing actors can be hard because they are asynchronous. We solved this in `src
 -   **`expect_...` helpers**: Allow you to intercept requests in your test and return fake responses.
 -   **See**: `src/integration_tests.rs` for real examples.
 
-📖 **[View testing guide](src/framework/mock.rs)** | Run `cargo doc --open` and navigate to `framework::mock`
+📖 **[View testing guide](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/mock/index.html)** - Complete testing patterns and examples
 
 ---
 
@@ -152,7 +152,7 @@ RUST_LOG=debug cargo run
 RUST_LOG=actor_recipe::framework=debug cargo run
 ```
 
-📖 **[View complete tracing documentation](src/lifecycle/mod.rs)** - Detailed examples, workflow traces, and best practices. Run `cargo doc --open` and navigate to the `lifecycle` module.
+📖 **[View complete tracing documentation](https://schilit.github.io/actor-framework-recipe/actor_recipe/lifecycle/tracing/index.html)** - Detailed examples, workflow traces, and best practices
 
 ---
 
