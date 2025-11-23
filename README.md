@@ -41,8 +41,8 @@ This pattern excels in systems with many loosely-coupled resources that occasion
 
 ### 1. The Core Abstraction (`src/framework/`)
 Instead of writing ad-hoc loops for every actor, we define a generic `ResourceActor<T>`.
--   **`Entity` Trait**: Defines *what* your actor manages (State).
--   **`ResourceActor`**: Defines *how* it runs (Runtime).
+-   **`ActorEntity` Trait**: Defines *what* your actor manages (State + Behavior).
+-   **`ResourceActor`**: Defines *how* it runs (Runtime with async context injection).
 -   **`ResourceClient`**: Defines *how* you talk to it (Interface).
 
 **Why?** This separates the *business logic* (your entity) from the *plumbing* (channels, message loops, error handling).
@@ -50,20 +50,20 @@ Instead of writing ad-hoc loops for every actor, we define a generic `ResourceAc
 ### 2. The Orchestrator (`src/lifecycle/`)
 Actors don't exist in a vacuum. The `OrderSystem` acts as the "dependency injection container" and lifecycle manager.
 -   It spins up all actors (`User`, `Product`, `Order`).
--   It wires them together (passing `UserClient` to `OrderClient`).
+-   It wires them together via **context injection** (passing clients to `run()`).
 -   It handles graceful shutdown.
 
 ### 3. The Clients (`src/clients/`)
 We don't expose raw message passing to the rest of the app. Instead, we wrap `ResourceClient` in domain-specific clients (e.g., `UserClient`).
 -   **Type Safety**: Each client provides strongly-typed methods for its domain
--   **Error Mapping**: We map generic framework errors to domain errors (`UserError`), so callers know exactly what went wrong.
+-   **Error Mapping**: We use **type-safe errors** (`UserError`, `ProductError`) instead of strings, enabling pattern matching and preserving error context.
 
 ---
 
 ## 🚀 Core Concepts
 
 ### Generics: The Power of `T`
-You'll see `ResourceActor<T: Entity>` everywhere. This means "I can be an actor for *anything*, as long as it behaves like an Entity."
+You'll see `ResourceActor<T: ActorEntity>` everywhere. This means "I can be an actor for *anything*, as long as it behaves like an ActorEntity."
 -   **Benefit**: We wrote the message processing loop **once**, and it works for Users, Products, and Orders.
 -   **Trade-off**: The code looks more complex initially, but it saves thousands of lines of duplicate code in the long run.
 
@@ -81,19 +81,31 @@ Testing actors can be hard because they are asynchronous. We solved this in `src
 ```text
 src/
 ├── framework/           # 🧠 The Brain: Generic Actor & Client implementation
-│   ├── core.rs          #    - ResourceActor, Entity trait, message types
+│   ├── core.rs          #    - ResourceActor, ActorEntity trait, message types
 │   └── mock.rs          #    - Testing utilities and mocks
 ├── lifecycle/           # 🎼 The Conductor: System orchestration & lifecycle
 │   ├── order_system.rs  #    - Actor wiring and dependency injection
 │   └── tracing.rs       #    - Observability setup
 ├── main.rs              # 🏁 Entry Point: Runs the demo application
 ├── clients/             # 🔌 The Plugs: Type-safe wrappers for actors
-│   ├── traits.rs        #    - DomainClient trait
-│   └── ...
+│   ├── actor_client.rs  #    - ActorClient trait (common interface)
+│   ├── user_client.rs   #    - UserClient implementation
+│   ├── product_client.rs#    - ProductClient implementation
+│   └── order_client.rs  #    - OrderClient implementation
 ├── model/               # 📦 The Data: Pure data structures (User, Product, Order)
 ├── user_actor/          # 👤 User Domain Logic
+│   ├── entity.rs        #    - ActorEntity implementation for User
+│   ├── error.rs         #    - UserError type (type-safe errors)
+│   └── mod.rs           #    - Module exports and factory function
 ├── product_actor/       # 📦 Product Domain Logic
+│   ├── entity.rs        #    - ActorEntity implementation for Product
+│   ├── error.rs         #    - ProductError type
+│   ├── actions.rs       #    - Custom actions (CheckStock, ReserveStock)
+│   └── mod.rs           #    - Module exports and factory function
 ├── order_actor/         # 🛒 Order Domain Logic
+│   ├── entity.rs        #    - ActorEntity implementation with validation
+│   ├── error.rs         #    - OrderError type (with #[from] conversions)
+│   └── mod.rs           #    - Module exports and factory function
 └── integration_tests.rs # ✅ End-to-End Tests
 ```
 
@@ -169,22 +181,47 @@ RUST_LOG=trace cargo run
 
 ### Workflow Trace Example
 
-The tracing output shows the complete order creation workflow:
+The tracing output shows the complete order creation workflow with hierarchical spans. Here's what you'll see when creating an order:
 
-1. **User Validation** → Actor Get request → User found
-2. **Product Validation** → Actor Get request → Product found
-3. **Stock Reservation** → Actor Action request → Stock reserved
-4. **Order Creation** → Actor Create request → Order created
+```
+INFO Sending create_order to actor
+INFO Created user_id="user_1" size=1
+INFO Created product_id="product_1" size=1
+INFO Action ok product_id="product_1"
+INFO Created order_id="order_1" size=1
+```
 
-Each step is traced with structured fields (`id`, `store_size`, `found`, etc.) that can be filtered and analyzed in production logging systems.
+**With `RUST_LOG=debug`**, you'll see the full Order payload and validation flow:
+
+```
+DEBUG create_order called order=Order { id: "", user_id: "user_1", product_id: "product_1", quantity: 3, total: 75.0 }
+INFO Sending create_order to actor
+DEBUG Get user_id="user_1"
+INFO Created user_id="user_1" size=1
+DEBUG Get product_id="product_1"
+INFO Created product_id="product_1" size=1
+DEBUG Action product_id="product_1" action=ReserveStock(3)
+INFO Action ok product_id="product_1"
+DEBUG Create params=OrderCreate { user_id: "user_1", product_id: "product_1", quantity: 3, total: 75.0 }
+INFO Created order_id="order_1" size=1
+```
+
+**Key Observations**:
+1. **User Validation** → `Get user_id="user_1"` → User found in actor
+2. **Product Validation** → `Get product_id="product_1"` → Product found
+3. **Stock Reservation** → `Action...ReserveStock(3)` → Stock reserved (happens in `Order::on_create`)
+4. **Order Creation** → `Create params=OrderCreate{...}` → Order created
+
+Each step is traced with structured fields that can be filtered and analyzed in production logging systems.
 
 ---
 
 ## 👩‍💻 Architecture Notes
 
-1.  **Error Handling**: Notice `FrameworkError` vs `UserError`. We distinguish between "The actor system broke" (Framework) and "The user doesn't exist" (Domain). This is crucial for reliable systems.
-2.  **Concurrency**: Each `ResourceActor` runs in its own Tokio task. They process messages sequentially (no locks needed for internal state!), but multiple actors run in parallel.
-3.  **Observability**: We use `tracing` everywhere with structured logging. The framework automatically creates spans for each operation, providing hierarchical context that's essential for debugging distributed systems.
+1.  **Type-Safe Error Handling**: Each actor defines its own error type (e.g., `UserError`, `ProductError`) that implements `std::error::Error`. This enables pattern matching on specific error types and preserves error context throughout the system. The `#[from]` attribute provides automatic error conversion for actors with dependencies.
+2.  **Async Context Injection**: Dependencies are injected at runtime via the `run()` method, not at construction time. This "Late Binding" pattern solves circular dependencies and enables flexible actor wiring.
+3.  **Concurrency**: Each `ResourceActor` runs in its own Tokio task. They process messages sequentially (no locks needed for internal state!), but multiple actors run in parallel.
+4.  **Observability**: We use `tracing` everywhere with structured logging. The framework automatically creates spans for each operation, providing hierarchical context that's essential for debugging distributed systems.
 
 ---
 
