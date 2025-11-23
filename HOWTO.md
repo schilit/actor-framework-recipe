@@ -165,6 +165,8 @@ impl ActorClient<User> for UserClient {
 - Provides domain-specific methods (`create_user`, `update_user`)
 - Implements `ActorClient` trait to inherit `get()` and `delete()`
 
+📖 **For more details on the client wrapper pattern**, see the [clients module documentation](src/clients/mod.rs) or run `cargo doc --open`.
+
 ### Step 4: Create a Factory Function (Optional but Recommended)
 
 To make your actor easy to instantiate, add a factory function in `src/user_actor/mod.rs`:
@@ -387,9 +389,9 @@ impl ActorEntity for User {
 
 ## How to Write Tests
  
-Comprehensive testing documentation has been moved to the [`framework::mock`](crate::framework::mock) module.
+Comprehensive testing documentation has been moved to the **[Mock Framework & Testing Guide](src/framework/mock.rs)** module.
  
-Please run `cargo doc --open` or view `src/framework/mock.rs` to see the guide on:
+Please run `cargo doc --open` and navigate to `framework::mock`, or view [src/framework/mock.rs](src/framework/mock.rs) directly to see the complete guide on:
 - **Pattern 0**: Client Logic Test (Pure Mock)
 - **Pattern 1**: Single Actor Test
 - **Pattern 2**: Actor with Mocked Dependencies

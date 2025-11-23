@@ -14,32 +14,14 @@ The system is built on three core pillars: **Type Safety**, **Separation of Conc
 
 ### Why ROA + Actor Model?
 
-This framework combines **Resource-Oriented Architecture (ROA)** with the **Actor Model** to create a powerful pattern for building scalable systems:
+This framework combines **Resource-Oriented Architecture (ROA)** with the **Actor Model** to provide:
+- Standard CRUD operations on well-defined resources (ROA)
+- Isolated state with message-passing concurrency (Actor Model)
+- Independent scaling and maintainability
 
-**Resource-Oriented Architecture (ROA)**:
-- Standard CRUD operations (Create, Read, Update, Delete) on well-defined resources
-- Predictable lifecycle management
-- Clean, uniform API surface across all resource types
+📖 **[Read the complete architectural rationale](src/framework/mod.rs)** - Learn about the synergies, design patterns, and further reading. Run `cargo doc --open` and navigate to the `framework` module.
 
-**Actor Model**:
-- Isolated state (no shared memory, no locks)
-- Message-passing concurrency
-- Sequential processing within each actor eliminates race conditions
-
-**The Synergy**:
-- **Separation**: Each resource type (User, Product, Order) gets its own actor with completely isolated state
-- **Coordination**: When resources need to interact (e.g., Order reserving Product stock), they communicate via **Action messages** instead of direct coupling
-- **Scalability**: Independent resources can scale independently without coordination overhead
-- **Maintainability**: Changes to one resource type don't ripple through the system
-
-This pattern excels in systems with many loosely-coupled resources that occasionally need to coordinate. The ROA provides structure, while the Actor Model provides safe concurrency.
-
-**Further Reading**:
-- [Actor Model (Wikipedia)](https://en.wikipedia.org/wiki/Actor_model) - Foundational concurrency pattern by Carl Hewitt
-- [Resource-Oriented Architecture](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm) - Roy Fielding's dissertation on REST/ROA principles
-- [Actors in Rust](https://ryhl.io/blog/actors-with-tokio/) - Practical guide to implementing actors with Tokio
-
-### 1. The Core Abstraction (`src/framework/`)
+### 1. The Core Abstraction ([`framework`](src/framework/mod.rs))
 Instead of writing ad-hoc loops for every actor, we define a generic `ResourceActor<T>`.
 -   **`ActorEntity` Trait**: Defines *what* your actor manages (State + Behavior).
 -   **`ResourceActor`**: Defines *how* it runs (Runtime with async context injection).
@@ -47,16 +29,22 @@ Instead of writing ad-hoc loops for every actor, we define a generic `ResourceAc
 
 **Why?** This separates the *business logic* (your entity) from the *plumbing* (channels, message loops, error handling).
 
-### 2. The Orchestrator (`src/lifecycle/`)
+📖 **[View framework documentation](src/framework/mod.rs)** | Run `cargo doc --open` and navigate to the `framework` module
+
+### 2. The Orchestrator ([`lifecycle`](src/lifecycle/mod.rs))
 Actors don't exist in a vacuum. The `OrderSystem` acts as the "dependency injection container" and lifecycle manager.
 -   It spins up all actors (`User`, `Product`, `Order`).
 -   It wires them together via **context injection** (passing clients to `run()`).
 -   It handles graceful shutdown.
 
-### 3. The Clients (`src/clients/`)
+📖 **[View lifecycle documentation](src/lifecycle/mod.rs)** | Run `cargo doc --open` and navigate to the `lifecycle` module
+
+### 3. The Clients ([`clients`](src/clients/mod.rs))
 We don't expose raw message passing to the rest of the app. Instead, we wrap `ResourceClient` in domain-specific clients (e.g., `UserClient`).
 -   **Type Safety**: Each client provides strongly-typed methods for its domain
 -   **Error Mapping**: We use **type-safe errors** (`UserError`, `ProductError`) instead of strings, enabling pattern matching and preserving error context.
+
+📖 **[View client documentation](src/clients/mod.rs)** | Run `cargo doc --open` and navigate to the `clients` module
 
 ---
 
@@ -67,12 +55,16 @@ You'll see `ResourceActor<T: ActorEntity>` everywhere. This means "I can be an a
 -   **Benefit**: We wrote the message processing loop **once**, and it works for Users, Products, and Orders.
 -   **Trade-off**: The code looks more complex initially, but it saves thousands of lines of duplicate code in the long run.
 
+📖 **[View framework module](src/framework/mod.rs)** | Run `cargo doc --open`
+
 ### Mocking: Testing without Pain
 Testing actors can be hard because they are asynchronous. We solved this in `src/framework/mock.rs`.
 -   **`MockClient`**: Fluent expectation builder for readable tests
 -   **`create_mock_client`**: Legacy helper for manual mocking
 -   **`expect_...` helpers**: Allow you to intercept requests in your test and return fake responses.
 -   **See**: `src/integration_tests.rs` for real examples.
+
+📖 **[View testing guide](src/framework/mock.rs)** | Run `cargo doc --open` and navigate to `framework::mock`
 
 ---
 
@@ -145,74 +137,22 @@ cargo test
 
 ## 🔍 Observability & Tracing
 
-The framework uses the `tracing` crate with a compact format that hides the crate/module prefix (`with_target(false)`). This keeps log lines short while still providing rich structured data.
+The framework uses the `tracing` crate for structured logging with hierarchical spans. The system traces actor lifecycle events, entity operations, request flows, and errors with detailed context.
 
-### What Gets Traced
-- **Actor Lifecycle**: Startup, shutdown, and final state
-- **Entity Operations**: Create, Get, Update, Delete, and custom Actions
-- **Request Flow**: Hierarchical spans showing the complete request path
-- **Errors**: Detailed error context with entity IDs and failure reasons
+### Quick Start
 
-### Debug Flag for Full Payload
-When you run the application with `RUST_LOG=debug`, the `create_order` function logs the full `Order` payload **once** at the start of the request:
-```rust,ignore
-debug!(?order, "create_order called");
-```
-The `?` syntax is a `tracing` macro feature that records the variable using its `Debug` representation as a structured field.
-
-Running with `RUST_LOG=debug` will show:
-```text
-DEBUG create_order called order={...}
-INFO order_processing:create_order: Processing create_order request (Client Side)
-```
-All subsequent logs remain concise, showing only the workflow hierarchy.
-
-### Usage Examples
 ```bash
 # Compact logs (default)
 RUST_LOG=info cargo run
 
-# Show full Order payload once
+# Show full payloads with debug logs
 RUST_LOG=debug cargo run
 
-# Very verbose tracing
-RUST_LOG=trace cargo run
+# Filter to specific modules
+RUST_LOG=actor_recipe::framework=debug cargo run
 ```
 
-### Workflow Trace Example
-
-The tracing output shows the complete order creation workflow with hierarchical spans. Here's what you'll see when creating an order:
-
-```text
-INFO Sending create_order to actor
-INFO Created user_id="user_1" size=1
-INFO Created product_id="product_1" size=1
-INFO Action ok product_id="product_1"
-INFO Created order_id="order_1" size=1
-```
-
-**With `RUST_LOG=debug`**, you'll see the full Order payload and validation flow:
-
-```text
-DEBUG create_order called order=Order { id: "", user_id: "user_1", product_id: "product_1", quantity: 3, total: 75.0 }
-INFO Sending create_order to actor
-DEBUG Get user_id="user_1"
-INFO Created user_id="user_1" size=1
-DEBUG Get product_id="product_1"
-INFO Created product_id="product_1" size=1
-DEBUG Action product_id="product_1" action=ReserveStock(3)
-INFO Action ok product_id="product_1"
-DEBUG Create params=OrderCreate { user_id: "user_1", product_id: "product_1", quantity: 3, total: 75.0 }
-INFO Created order_id="order_1" size=1
-```
-
-**Key Observations**:
-1. **User Validation** → `Get user_id="user_1"` → User found in actor
-2. **Product Validation** → `Get product_id="product_1"` → Product found
-3. **Stock Reservation** → `Action...ReserveStock(3)` → Stock reserved (happens in `Order::on_create`)
-4. **Order Creation** → `Create params=OrderCreate{...}` → Order created
-
-Each step is traced with structured fields that can be filtered and analyzed in production logging systems.
+📖 **[View complete tracing documentation](src/lifecycle/mod.rs)** - Detailed examples, workflow traces, and best practices. Run `cargo doc --open` and navigate to the `lifecycle` module.
 
 ---
 

@@ -1,12 +1,13 @@
 //! # Mock Framework & Testing Guide
 //!
-//! This module provides utilities for testing actors and clients in isolation, as well as a comprehensive guide on testing strategies.
+//! This module provides utilities for testing actors and clients in isolation.
 //!
 //! ## Testing Strategies
 //!
-//! The actor framework supports four distinct testing patterns, each with different trade-offs:
+//! The actor framework supports four distinct testing patterns.
 //!
-//! ### Pattern 0: Client Logic Test (Pure Mock)
+//! <details>
+//! <summary><b>Pattern 0: Client Logic Test (Pure Mock)</b></summary>
 //!
 //! **When to use**: Testing complex orchestration logic in your *Client* (e.g., `OrderClient`) without spinning up any actors.
 //!
@@ -26,8 +27,10 @@
 //!     // ...
 //! }
 //! ```
+//! </details>
 //!
-//! ### Pattern 1: Single Actor Test (Fast, Isolated)
+//! <details>
+//! <summary><b>Pattern 1: Single Actor Test (Fast, Isolated)</b></summary>
 //!
 //! **When to use**: Testing a single actor's logic in isolation.
 //!
@@ -42,8 +45,10 @@
 //!     assert_eq!(client.check_stock(id).await.unwrap(), 100);
 //! }
 //! ```
+//! </details>
 //!
-//! ### Pattern 2: Actor with Mocked Dependencies (Sweet Spot)
+//! <details>
+//! <summary><b>Pattern 2: Actor with Mocked Dependencies (Sweet Spot)</b></summary>
 //!
 //! **When to use**: Testing an actor that depends on other actors, but you want to isolate the actor under test.
 //!
@@ -61,14 +66,20 @@
 //!     // ...
 //! }
 //! ```
+//! </details>
 //!
-//! ### Pattern 3: Full System Integration Test (Comprehensive)
+//! <details>
+//! <summary><b>Pattern 3: Full System Integration Test (Comprehensive)</b></summary>
 //!
 //! **When to use**: Testing the entire system working together, end-to-end flows, concurrency.
 //!
 //! See `tests/integration_test.rs` for examples.
+//! </details>
 //!
 //! ## Advanced: Test-Only Actions
+//!
+//! <details>
+//! <summary><b>How to use Feature Flags for Testing</b></summary>
 //!
 //! Sometimes you need to inspect internal actor state for testing. Use a Cargo **feature flag** (`testing`) 
 //! instead of `#[cfg(test)]` so it works with integration tests.
@@ -86,6 +97,7 @@
 //!     GetInternalState,
 //! }
 //! ```
+//! </details>
 //!
 //! ## Mocking Utilities
 //!
