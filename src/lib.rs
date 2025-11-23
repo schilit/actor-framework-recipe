@@ -8,9 +8,7 @@
 //! It combines **Resource-Oriented Architecture (ROA)** with the **Actor Model** to provide
 //! isolated state management with standard CRUD operations.
 //!
-//! ## Design Philosophy
-//!
-//! ### Why ROA + Actor Model?
+//! ## Design Philosophy: Why ROA + Actor Model?
 //!
 //! This framework combines two powerful concepts:
 //! - **Resource-Oriented Architecture (ROA)**: Standard CRUD operations on well-defined resources.
