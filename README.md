@@ -58,11 +58,11 @@ You'll see `ResourceActor<T: ActorEntity>` everywhere. This means "I can be an a
 📖 **[View framework module](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/index.html)** for detailed documentation
 
 ### Mocking: Testing without Pain
-Testing actors can be hard because they are asynchronous. We solved this in `src/framework/mock.rs`.
+Testing actors can be hard because they are asynchronous. We solved this in [`src/framework/mock.rs`](src/framework/mock.rs).
 -   **`MockClient`**: Fluent expectation builder for readable tests
 -   **`create_mock_client`**: Legacy helper for manual mocking
 -   **`expect_...` helpers**: Allow you to intercept requests in your test and return fake responses.
--   **See**: `src/integration_tests.rs` for real examples.
+-   **See**: [`src/integration_tests.rs`](src/integration_tests.rs) for real examples.
 
 📖 **[View testing guide](https://schilit.github.io/actor-framework-recipe/actor_recipe/framework/mock/index.html)** - Complete testing patterns and examples
 
