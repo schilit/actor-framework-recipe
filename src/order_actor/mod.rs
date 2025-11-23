@@ -19,38 +19,9 @@
 //! The following diagram shows how a `create_order` call flows through the system,
 //! demonstrating actor-to-actor communication and validation:
 //!
-//! ```mermaid
-//! sequenceDiagram
-//!     participant Main as Main Thread
-//!     participant OC as OrderClient
-//!     participant OA as Order Actor
-//!     participant UC as UserClient
-//!     participant UA as User Actor
-//!     participant PC as ProductClient
-//!     participant PA as Product Actor
-//!
-//!     Main->>OC: create_order(OrderCreate)
-//!     OC->>OA: Send Create message
-//!     
-//!     Note over OA: on_create() hook triggered
-//!     
-//!     OA->>UC: get(user_id)
-//!     UC->>UA: Send Get message
-//!     UA-->>UC: Return User
-//!     UC-->>OA: Return User
-//!     
-//!     Note over OA: Validate user exists
-//!     
-//!     OA->>PC: reserve_stock(product_id, quantity)
-//!     PC->>PA: Send ReserveStock action
-//!     PA-->>PC: Return success
-//!     PC-->>OA: Return success
-//!     
-//!     Note over OA: Stock reserved, create order
-//!     
-//!     OA-->>OC: Return order_id
-//!     OC-->>Main: Return order_id
-//! ```
+//! <div align="center">
+//! <img src="https://raw.githubusercontent.com/schilit/actor-framework-recipe/main/docs/images/create_order_sequence.png" alt="create_order sequence diagram" width="600"/>
+//! </div>
 //!
 //! **Key Points:**
 //! - All communication is asynchronous via message passing
