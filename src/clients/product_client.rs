@@ -155,16 +155,17 @@ mod tests {
 
         // Respond with error
         use crate::framework::FrameworkError;
-        responder.send(Err(FrameworkError::Custom(
-            "Insufficient stock: 10 available, 100 requested".to_string()
-        ))).unwrap();
+        responder.send(Err(FrameworkError::EntityError(Box::new(
+            std::io::Error::new(std::io::ErrorKind::Other, "Stock check failed")
+        )))).unwrap();
 
         // Verify the result is an error
         let result = reserve_task.await.unwrap();
         assert!(result.is_err());
         match result {
             Err(ProductError::ActorCommunicationError(msg)) => {
-                assert!(msg.contains("Insufficient stock"));
+                // Error message comes from the EntityError wrapper
+                assert!(msg.contains("Stock check failed") || msg.contains("Entity error"));
             }
             _ => panic!("Expected ActorCommunicationError"),
         }

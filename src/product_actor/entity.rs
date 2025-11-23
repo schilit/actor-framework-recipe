@@ -10,7 +10,7 @@
 use async_trait::async_trait;
 use crate::framework::ActorEntity;
 use crate::model::{Product, ProductCreate, ProductUpdate};
-use crate::product_actor::{ProductAction, ProductActionResult};
+use crate::product_actor::{ProductAction, ProductActionResult, ProductError};
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
@@ -26,11 +26,12 @@ impl ActorEntity for Product {
     type Action = ProductAction;
     type ActionResult = ProductActionResult;
     type Context = ();
+    type Error = ProductError;
 
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new Product from creation parameters.
-    fn from_create_params(id: String, params: ProductCreate) -> Result<Self, String> {
+    fn from_create_params(id: String, params: ProductCreate) -> Result<Self, Self::Error> {
         Ok(Product::new(id, params.name, params.price, params.quantity))
     }
 
@@ -39,7 +40,7 @@ impl ActorEntity for Product {
     /// # Fields Updated
     /// - `price`: Product price
     /// - `quantity`: Available stock quantity
-    async fn on_update(&mut self, update: ProductUpdate, _ctx: &Self::Context) -> Result<(), String> {
+    async fn on_update(&mut self, update: ProductUpdate, _ctx: &Self::Context) -> Result<(), Self::Error> {
         if let Some(price) = update.price {
             self.price = price;
         }
@@ -54,7 +55,7 @@ impl ActorEntity for Product {
     /// # Actions
     /// - `CheckStock`: Returns true if requested quantity is available
     /// - `ReserveStock`: Decrements stock if available, returns true on success
-    async fn handle_action(&mut self, action: ProductAction, _ctx: &Self::Context) -> Result<ProductActionResult, String> {
+    async fn handle_action(&mut self, action: ProductAction, _ctx: &Self::Context) -> Result<ProductActionResult, Self::Error> {
         match action {
             ProductAction::CheckStock => {
                 Ok(ProductActionResult::CheckStock(self.quantity))
@@ -64,7 +65,10 @@ impl ActorEntity for Product {
                     self.quantity -= quantity;
                     Ok(ProductActionResult::ReserveStock(()))
                 } else {
-                    Err(format!("Insufficient stock: requested {}, available {}", quantity, self.quantity))
+                    Err(ProductError::InsufficientStock { 
+                        requested: quantity, 
+                        available: self.quantity 
+                    })
                 }
             }
         }

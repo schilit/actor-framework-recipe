@@ -72,26 +72,30 @@ pub trait ActorEntity: Clone + Send + Sync + 'static {
     /// Use `()` if no dependencies are needed.
     type Context: Send + Sync;
 
+    /// The error type for this entity.
+    /// Must implement std::error::Error for proper error propagation.
+    type Error: std::error::Error + Send + Sync + 'static;
+
     /// Construct the full Entity from the ID and Payload.
     /// This is called synchronously before `on_create`.
-    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, String>;
+    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, Self::Error>;
 
     // --- Lifecycle Hooks (Async) ---
 
     /// Called immediately after the entity is created and initialized.
     /// Use this hook to perform validation or side effects (e.g., checking other actors).
-    async fn on_create(&mut self, _ctx: &Self::Context) -> Result<(), String> { Ok(()) }
+    async fn on_create(&mut self, _ctx: &Self::Context) -> Result<(), Self::Error> { Ok(()) }
 
     /// Called when an update request is received.
-    async fn on_update(&mut self, update: Self::UpdateParams, _ctx: &Self::Context) -> Result<(), String>;
+    async fn on_update(&mut self, update: Self::UpdateParams, _ctx: &Self::Context) -> Result<(), Self::Error>;
 
     /// Called immediately before the entity is removed from the system.
-    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), String> { Ok(()) }
+    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), Self::Error> { Ok(()) }
 
     // --- Action Handler (Async) ---
     
     /// Handle a custom resource-specific action.
-    async fn handle_action(&mut self, action: Self::Action, _ctx: &Self::Context) -> Result<Self::ActionResult, String>;
+    async fn handle_action(&mut self, action: Self::Action, _ctx: &Self::Context) -> Result<Self::ActionResult, Self::Error>;
 }
 
 // =============================================================================
@@ -103,7 +107,7 @@ pub trait ActorEntity: Clone + Send + Sync + 'static {
 // =============================================================================
 
 /// Errors that can occur within the actor framework itself.
-#[derive(Debug, thiserror::Error, PartialEq)]
+#[derive(Debug, thiserror::Error)]
 pub enum FrameworkError {
     #[error("Actor closed")]
     ActorClosed,
@@ -111,8 +115,8 @@ pub enum FrameworkError {
     ActorDropped,
     #[error("Item not found: {0}")]
     NotFound(String),
-    #[error("Custom error: {0}")]
-    Custom(String),
+    #[error("Entity error: {0}")]
+    EntityError(Box<dyn std::error::Error + Send + Sync>),
 }
 
 /// Type alias for the one-shot response channel used by actors.
@@ -227,7 +231,7 @@ impl<T: ActorEntity> ResourceActor<T> {
                             // Await the async hook
                             if let Err(e) = item.on_create(&context).await {
                                 warn!(entity_type, error = %e, "on_create failed");
-                                let _ = respond_to.send(Err(FrameworkError::Custom(e)));
+                                let _ = respond_to.send(Err(FrameworkError::EntityError(Box::new(e))));
                                 continue;
                             }
                             self.store.insert(id.clone(), item);
@@ -236,7 +240,7 @@ impl<T: ActorEntity> ResourceActor<T> {
                         }
                         Err(e) => {
                             warn!(entity_type, error = %e, "Create failed");
-                            let _ = respond_to.send(Err(FrameworkError::Custom(e)));
+                            let _ = respond_to.send(Err(FrameworkError::EntityError(Box::new(e))));
                         }
                     }
                 }
@@ -252,7 +256,7 @@ impl<T: ActorEntity> ResourceActor<T> {
                         // Await the async hook
                         if let Err(e) = item.on_update(update, &context).await {
                             warn!(entity_type, %id, error = %e, "Update failed");
-                            let _ = respond_to.send(Err(FrameworkError::Custom(e)));
+                            let _ = respond_to.send(Err(FrameworkError::EntityError(Box::new(e))));
                             continue;
                         }
                         info!(entity_type, %id, "Updated");
@@ -268,7 +272,7 @@ impl<T: ActorEntity> ResourceActor<T> {
                         // Await the async hook
                         if let Err(e) = item.on_delete(&context).await {
                             warn!(entity_type, %id, error = %e, "on_delete failed");
-                            let _ = respond_to.send(Err(FrameworkError::Custom(e)));
+                            let _ = respond_to.send(Err(FrameworkError::EntityError(Box::new(e))));
                             continue;
                         }
                         self.store.remove(&id);
@@ -284,7 +288,7 @@ impl<T: ActorEntity> ResourceActor<T> {
                     if let Some(item) = self.store.get_mut(&id) {
                         // Await the async hook
                         let result = item.handle_action(action, &context).await
-                            .map_err(FrameworkError::Custom);
+                            .map_err(|e| FrameworkError::EntityError(Box::new(e)));
                         match &result {
                             Ok(_) => info!(entity_type, %id, "Action ok"),
                             Err(e) => warn!(entity_type, %id, error = %e, "Action failed"),
@@ -392,6 +396,10 @@ mod tests {
         Rename(String),
     }
 
+    #[derive(Debug, thiserror::Error)]
+    #[error("Simple user error: {0}")]
+    struct SimpleUserError(String);
+
     #[async_trait]
     impl ActorEntity for SimpleUser {
         type Id = String;
@@ -400,10 +408,11 @@ mod tests {
         type Action = UserAction;
         type ActionResult = bool;
         type Context = ();
+        type Error = SimpleUserError;
 
         // fn id(&self) -> &String { &self.id }
 
-        fn from_create_params(id: String, params: SimpleUserCreate) -> Result<Self, String> {
+        fn from_create_params(id: String, params: SimpleUserCreate) -> Result<Self, Self::Error> {
             Ok(Self {
                 id,
                 name: params.name,
@@ -412,14 +421,14 @@ mod tests {
             })
         }
 
-        async fn on_update(&mut self, update: SimpleUserUpdate, _ctx: &Self::Context) -> Result<(), String> {
+        async fn on_update(&mut self, update: SimpleUserUpdate, _ctx: &Self::Context) -> Result<(), Self::Error> {
             if let Some(name) = update.name {
                 self.name = name;
             }
             Ok(())
         }
 
-        async fn handle_action(&mut self, action: UserAction, _ctx: &Self::Context) -> Result<bool, String> {
+        async fn handle_action(&mut self, action: UserAction, _ctx: &Self::Context) -> Result<bool, Self::Error> {
             match action {
                 UserAction::PromoteToAdmin => {
                     if self.is_admin {

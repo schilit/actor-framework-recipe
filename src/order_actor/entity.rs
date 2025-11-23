@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use crate::framework::ActorEntity;
 use crate::model::{Order, OrderCreate};
 use crate::clients::{UserClient, ProductClient, actor_client::ActorClient};
-use crate::product_actor::ProductAction;
+use crate::order_actor::OrderError;
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
@@ -25,42 +25,42 @@ impl ActorEntity for Order {
     type Action = (); // No custom actions for now
     type ActionResult = ();
     type Context = (UserClient, ProductClient);
+    type Error = OrderError;
 
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new Order from creation parameters.
-    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, String> {
+    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, Self::Error> {
         Ok(Self::new(id, params.user_id, params.product_id, params.quantity, params.total))
     }
 
     /// Validates the order by checking User existence and reserving Product stock.
-    async fn on_create(&mut self, (user_client, product_client): &Self::Context) -> Result<(), String> {
+    async fn on_create(&mut self, (user_client, product_client): &Self::Context) -> Result<(), Self::Error> {
         // 1. Validate User
-        let user = user_client.get(self.user_id.clone()).await
-            .map_err(|e| e.to_string())?;
+        let user = user_client.get(self.user_id.clone()).await?;
         
         if user.is_none() {
-            return Err(format!("User {} not found", self.user_id));
+            return Err(OrderError::InvalidUser(self.user_id.clone()));
         }
 
-        // 2. Reserve Stock
+        // 2. Reserve Stock - errors automatically convert via #[from]
         product_client.reserve_stock(
             self.product_id.clone(), 
             self.quantity
-        ).await.map_err(|e| e.to_string())?;
+        ).await?;
 
         Ok(())
     }
 
-    async fn handle_action(&mut self, _action: Self::Action, _ctx: &Self::Context) -> Result<Self::ActionResult, String> {
+    async fn handle_action(&mut self, _action: Self::Action, _ctx: &Self::Context) -> Result<Self::ActionResult, Self::Error> {
         Ok(())
     }
 
-    async fn on_update(&mut self, _update: Self::UpdateParams, _ctx: &Self::Context) -> Result<(), String> {
+    async fn on_update(&mut self, _update: Self::UpdateParams, _ctx: &Self::Context) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), String> {
+    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), Self::Error> {
         Ok(())
     }
 }

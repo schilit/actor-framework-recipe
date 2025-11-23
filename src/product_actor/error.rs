@@ -3,7 +3,10 @@
 use thiserror::Error;
 
 /// Errors that can occur during product operations.
-#[derive(Debug, Clone, Error, PartialEq)]
+///
+/// This error type is used both by the client (ProductClient) and internally
+/// by the Product entity's lifecycle hooks.
+#[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum ProductError {
     /// The requested product was not found.
@@ -17,6 +20,10 @@ pub enum ProductError {
     /// The provided quantity is invalid (e.g., zero or negative).
     #[error("Invalid quantity: {0}")]
     InvalidQuantity(u32),
+
+    /// Invalid price value (entity-level validation)
+    #[error("Invalid price: {0}")]
+    InvalidPrice(f64),
 
     /// An underlying database error occurred.
     #[error("Product database error: {0}")]

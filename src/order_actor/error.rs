@@ -1,9 +1,14 @@
 //! Error types for the Order actor.
 
 use thiserror::Error;
+use crate::user_actor::UserError;
+use crate::product_actor::ProductError;
 
 /// Errors that can occur during order operations.
-#[derive(Debug, Clone, Error, PartialEq)]
+///
+/// This error type is used both by the client (OrderClient) and internally
+/// by the Order entity's lifecycle hooks.
+#[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum OrderError {
     /// The requested order was not found.
@@ -25,6 +30,14 @@ pub enum OrderError {
     /// The order data provided is invalid.
     #[error("Order validation error: {0}")]
     ValidationError(String),
+
+    /// Error from User service (entity-level)
+    #[error("User service error: {0}")]
+    UserService(#[from] UserError),
+
+    /// Error from Product service (entity-level)
+    #[error("Product service error: {0}")]
+    ProductService(#[from] ProductError),
 
     /// An underlying database error occurred.
     #[error("Order database error: {0}")]

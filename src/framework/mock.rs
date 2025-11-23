@@ -286,7 +286,7 @@ mod tests {
         responder.send(Ok("user_1".to_string())).unwrap();
 
         let result = create_task.await.unwrap();
-        assert_eq!(result, Ok("user_1".to_string()));
+        assert!(matches!(result, Ok(id) if id == "user_1"));
     }
 
     #[tokio::test]

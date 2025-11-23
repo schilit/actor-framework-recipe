@@ -3,7 +3,10 @@
 use thiserror::Error;
 
 /// Errors that can occur during user operations.
-#[derive(Debug, Clone, Error, PartialEq)]
+/// 
+/// This error type is used both by the client (UserClient) and internally
+/// by the User entity's lifecycle hooks.
+#[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum UserError {
     /// The requested user was not found.
@@ -17,6 +20,10 @@ pub enum UserError {
     /// The user data provided is invalid.
     #[error("User validation error: {0}")]
     ValidationError(String),
+
+    /// Invalid email format (entity-level validation)
+    #[error("Invalid email format: {0}")]
+    InvalidEmail(String),
 
     /// An underlying database error occurred.
     #[error("User database error: {0}")]

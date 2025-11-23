@@ -715,23 +715,27 @@ cargo test --features testing
 
 ## How to Handle Errors
 
-### Define Domain-Specific Errors
+The framework uses **type-safe error handling** via associated error types. Each entity defines its own error type that implements `std::error::Error`.
 
-In `src/user_actor/error.rs`:
+### Step 1: Define Your Error Type
+
+Each actor has an error type in `src/*_actor/error.rs`. This error type serves **both** the client and the entity:
 
 ```rust
+//! src/user_actor/error.rs
 use thiserror::Error;
 
-#[derive(Debug, Error, PartialEq)]
+/// Errors for User operations (used by both client and entity)
+#[derive(Debug, Error)]
 pub enum UserError {
     #[error("User not found: {0}")]
     NotFound(String),
 
     #[error("Invalid email format: {0}")]
-    InvalidEmail(String),
+    InvalidEmail(String),  // Entity-level validation
 
     #[error("Actor communication error: {0}")]
-    ActorCommunicationError(String),
+    ActorCommunicationError(String),  // Framework errors
 }
 
 impl From<String> for UserError {
@@ -741,43 +745,127 @@ impl From<String> for UserError {
 }
 ```
 
-### Return Errors from Entity Methods
+**Key Points**:
+- **No `Clone` or `PartialEq`** - These prevent implementing `std::error::Error`
+- **Dual purpose** - Used by both entity methods and client methods
+- **Structured variants** - Enable pattern matching on specific error types
+
+### Step 2: Use `type Error` in Your Entity
 
 ```rust
+use crate::user_actor::UserError;
+
+#[async_trait]
 impl ActorEntity for User {
-    fn from_create_params(id: String, params: UserCreate) -> Result<Self, String> {
+    type Id = String;
+    type CreateParams = UserCreate;
+    type UpdateParams = UserUpdate;
+    type Error = UserError;  // ← Type-safe errors!
+    // ... other types ...
+
+    fn from_create_params(id: String, params: UserCreate) -> Result<Self, Self::Error> {
+        // Validate email format
         if !params.email.contains('@') {
-            return Err(format!("Invalid email: {}", params.email));
+            return Err(UserError::InvalidEmail(params.email));
         }
-        Ok(Self {
-            id,
-            name: params.name,
-            email: params.email,
-        })
+        Ok(Self { id, name: params.name, email: params.email })
+    }
+
+    async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context) 
+        -> Result<(), Self::Error> 
+    {
+        if let Some(email) = update.email {
+            if !email.contains('@') {
+                return Err(UserError::InvalidEmail(email));
+            }
+            self.email = email;
+        }
+        Ok(())
     }
 }
 ```
 
-### Map Errors in the Client
+### Step 3: Error Propagation with `#[from]`
+
+For entities that depend on other services (like `Order`), use `#[from]` for automatic error conversion:
 
 ```rust
-impl UserClient {
-    pub async fn create_user(&self, user: User) -> Result<String, UserError> {
-        let payload = UserCreate {
-            name: user.name,
-            email: user.email,
-        };
-        self.inner.create(payload).await
-            .map_err(|e| match e {
-                FrameworkError::Custom(msg) if msg.contains("Invalid email") => {
-                    UserError::InvalidEmail(msg)
-                }
-                FrameworkError::NotFound(id) => UserError::NotFound(id),
-                _ => UserError::ActorCommunicationError(e.to_string()),
-            })
-    }
+//! src/order_actor/error.rs
+use thiserror::Error;
+use crate::user_actor::UserError;
+use crate::product_actor::ProductError;
+
+#[derive(Debug, Error)]
+pub enum OrderError {
+    #[error("User {0} not found")]
+    InvalidUser(String),
+
+    #[error("Product {0} not found")]
+    InvalidProduct(String),
+
+    // Automatic conversion from UserError
+    #[error("User service error: {0}")]
+    UserService(#[from] UserError),
+
+    // Automatic conversion from ProductError
+    #[error("Product service error: {0}")]
+    ProductService(#[from] ProductError),
+
+    #[error("Actor communication error: {0}")]
+    ActorCommunicationError(String),
 }
 ```
+
+**Usage in Order entity**:
+
+```rust
+async fn on_create(&mut self, (user_client, product_client): &Self::Context) 
+    -> Result<(), Self::Error> 
+{
+    // 1. Validate User - errors auto-convert via #[from]
+    let user = user_client.get(self.user_id.clone()).await?;
+    
+    if user.is_none() {
+        return Err(OrderError::InvalidUser(self.user_id.clone()));
+    }
+
+    // 2. Reserve Stock - ProductError auto-converts to OrderError::ProductService
+    product_client.reserve_stock(
+        self.product_id.clone(), 
+        self.quantity
+    ).await?;  // ← No .map_err() needed!
+
+    Ok(())
+}
+```
+
+### Step 4: Pattern Match on Errors
+
+Clients can now pattern match on specific error types:
+
+```rust
+match order_client.create_order(order).await {
+    Ok(order_id) => println!("Order created: {}", order_id),
+    Err(OrderError::InvalidUser(user_id)) => {
+        println!("User {} doesn't exist", user_id);
+    }
+    Err(OrderError::ProductService(ProductError::InsufficientStock { requested, available })) => {
+        println!("Not enough stock: need {}, have {}", requested, available);
+    }
+    Err(e) => println!("Other error: {}", e),
+}
+```
+
+### Benefits of Type-Safe Errors
+
+1. **No `.to_string()` loss** - Error context is preserved
+2. **Pattern matching** - Handle specific errors differently
+3. **Automatic conversion** - `#[from]` eliminates boilerplate
+4. **Better error messages** - Structured data in error variants
+5. **Compile-time safety** - Catch error handling bugs early
+
+---
+
 
 **Best Practices**:
 - Entity methods return `Result<T, String>` (simple)
