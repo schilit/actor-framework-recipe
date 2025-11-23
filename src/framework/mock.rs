@@ -1,9 +1,95 @@
-//! # Mock Framework
+//! # Mock Framework & Testing Guide
 //!
-//! Utilities for testing clients in isolation.
+//! This module provides utilities for testing actors and clients in isolation, as well as a comprehensive guide on testing strategies.
 //!
-//! Use [`create_mock_client`] to get a client and a receiver.
-//! Then use helpers like [`expect_create`] or [`expect_action`] to assert behavior.
+//! ## Testing Strategies
+//!
+//! The actor framework supports four distinct testing patterns, each with different trade-offs:
+//!
+//! ### Pattern 0: Client Logic Test (Pure Mock)
+//!
+//! **When to use**: Testing complex orchestration logic in your *Client* (e.g., `OrderClient`) without spinning up any actors.
+//!
+//! **Example**:
+//! ```rust,ignore
+//! #[tokio::test]
+//! async fn test_order_client_orchestration() {
+//!     // 1. Setup Mocks
+//!     let mut user_mock = MockClient::<User>::new();
+//!     user_mock.expect_get("user_1".to_string())
+//!         .return_ok(Some(User::new("user_1", "test@example.com")));
+//!
+//!     // 2. Create Client with Mocks
+//!     let user_client = UserClient::new(user_mock.client());
+//!     
+//!     // 3. Test Logic
+//!     // ...
+//! }
+//! ```
+//!
+//! ### Pattern 1: Single Actor Test (Fast, Isolated)
+//!
+//! **When to use**: Testing a single actor's logic in isolation.
+//!
+//! **Example**:
+//! ```rust,ignore
+//! #[tokio::test]
+//! async fn test_product_stock_management() {
+//!     let (actor, client) = crate::product_actor::new();
+//!     tokio::spawn(actor.run(()));
+//!     
+//!     let id = client.create(product).await.unwrap();
+//!     assert_eq!(client.check_stock(id).await.unwrap(), 100);
+//! }
+//! ```
+//!
+//! ### Pattern 2: Actor with Mocked Dependencies (Sweet Spot)
+//!
+//! **When to use**: Testing an actor that depends on other actors, but you want to isolate the actor under test.
+//!
+//! **Example**:
+//! ```rust,ignore
+//! #[tokio::test]
+//! async fn test_order_actor_with_mocked_dependencies() {
+//!     let mut user_mock = MockClient::<User>::new();
+//!     // ... setup expectations ...
+//!
+//!     let (actor, client) = crate::order_actor::new(
+//!         UserClient::new(user_mock.client()),
+//!         // ...
+//!     );
+//!     // ...
+//! }
+//! ```
+//!
+//! ### Pattern 3: Full System Integration Test (Comprehensive)
+//!
+//! **When to use**: Testing the entire system working together, end-to-end flows, concurrency.
+//!
+//! See `tests/integration_test.rs` for examples.
+//!
+//! ## Advanced: Test-Only Actions
+//!
+//! Sometimes you need to inspect internal actor state for testing. Use a Cargo **feature flag** (`testing`) 
+//! instead of `#[cfg(test)]` so it works with integration tests.
+//!
+//! ```toml
+//! [features]
+//! testing = []
+//! ```
+//!
+//! Then guard your test-only actions:
+//!
+//! ```rust,ignore
+//! pub enum ProductAction {
+//!     #[cfg(feature = "testing")]
+//!     GetInternalState,
+//! }
+//! ```
+//!
+//! ## Mocking Utilities
+//!
+//! Use [`create_mock_client`] to get a client and a receiver, or use the fluent [`MockClient`] API.
 
 use crate::framework::{ActorEntity, FrameworkError, ResourceClient, ResourceRequest};
 use std::collections::VecDeque;
