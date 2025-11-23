@@ -1,4 +1,4 @@
-use crate::framework::{ActorEntity, ResourceClient, FrameworkError};
+use crate::framework::{ActorEntity, FrameworkError, ResourceClient};
 use async_trait::async_trait;
 
 /// Trait for resource-specific clients to inherit standard CRUD operations.

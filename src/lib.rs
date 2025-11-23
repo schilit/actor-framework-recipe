@@ -1,7 +1,7 @@
-pub mod model;
 pub mod clients;
-pub mod lifecycle;
 pub mod framework;
-pub mod user_actor;
-pub mod product_actor;
+pub mod lifecycle;
+pub mod model;
 pub mod order_actor;
+pub mod product_actor;
+pub mod user_actor;

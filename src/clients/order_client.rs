@@ -1,9 +1,9 @@
-use tracing::{info, instrument, debug};
+use crate::clients::actor_client::ActorClient;
+use crate::framework::{FrameworkError, ResourceClient};
 use crate::model::Order;
 use crate::order_actor::OrderError;
-use crate::framework::{ResourceClient, FrameworkError};
 use async_trait::async_trait;
-use crate::clients::actor_client::ActorClient;
+use tracing::{debug, info, instrument};
 
 /// Client for interacting with the Order actor.
 ///
@@ -32,7 +32,9 @@ impl OrderClient {
             total: order.total,
         };
 
-        self.inner.create(payload).await
+        self.inner
+            .create(payload)
+            .await
             .map_err(|e| OrderError::ActorCommunicationError(e.to_string()))
     }
 }

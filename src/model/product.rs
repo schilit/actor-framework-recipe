@@ -8,7 +8,7 @@
 /// - Creation parameters ([`ProductCreate`](crate::model::ProductCreate))
 /// - Update parameters ([`ProductUpdate`](crate::model::ProductUpdate))
 /// - Custom actions ([`ProductAction`](crate::product_actor::actions::ProductAction))
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct Product {

@@ -1,6 +1,6 @@
-use actor_recipe::lifecycle::OrderSystem;
-use actor_recipe::model::{User, Product, Order};
 use actor_recipe::clients::actor_client::ActorClient;
+use actor_recipe::lifecycle::OrderSystem;
+use actor_recipe::model::{Order, Product, User};
 
 /// Full end-to-end integration test with all real actors.
 /// This tests the entire system working together.
@@ -11,11 +11,17 @@ async fn test_full_order_system_integration() {
 
     // Create a user
     let user = User::new("Alice", "alice@example.com");
-    let user_id = system.user_client.create_user(user).await
+    let user_id = system
+        .user_client
+        .create_user(user)
+        .await
         .expect("Failed to create user");
 
     // Verify user was created
-    let retrieved_user = system.user_client.get(user_id.clone()).await
+    let retrieved_user = system
+        .user_client
+        .get(user_id.clone())
+        .await
         .expect("Failed to get user")
         .expect("User not found");
     assert_eq!(retrieved_user.name, "Alice");
@@ -23,21 +29,33 @@ async fn test_full_order_system_integration() {
 
     // Create a product with stock
     let product = Product::new("", "Super Widget", 25.50, 100);
-    let product_id = system.product_client.create_product(product).await
+    let product_id = system
+        .product_client
+        .create_product(product)
+        .await
         .expect("Failed to create product");
 
     // Verify initial stock level
-    let initial_stock = system.product_client.check_stock(product_id.clone()).await
+    let initial_stock = system
+        .product_client
+        .check_stock(product_id.clone())
+        .await
         .expect("Failed to check stock");
     assert_eq!(initial_stock, 100);
 
     // Create an order (should reserve stock)
     let order = Order::new("", user_id.clone(), product_id.clone(), 5, 127.50);
-    let order_id = system.order_client.create_order(order).await
+    let order_id = system
+        .order_client
+        .create_order(order)
+        .await
         .expect("Failed to create order");
 
     // Verify order was created with correct details
-    let retrieved_order = system.order_client.get(order_id.clone()).await
+    let retrieved_order = system
+        .order_client
+        .get(order_id.clone())
+        .await
         .expect("Failed to get order")
         .expect("Order not found");
     assert_eq!(retrieved_order.user_id, user_id);
@@ -46,9 +64,15 @@ async fn test_full_order_system_integration() {
     assert_eq!(retrieved_order.total, 127.50);
 
     // Verify stock was decremented
-    let final_stock = system.product_client.check_stock(product_id.clone()).await
+    let final_stock = system
+        .product_client
+        .check_stock(product_id.clone())
+        .await
         .expect("Failed to check stock");
-    assert_eq!(final_stock, 95, "Stock should be decremented by order quantity");
+    assert_eq!(
+        final_stock, 95,
+        "Stock should be decremented by order quantity"
+    );
 
     // Test insufficient stock scenario
     let large_order = Order::new("", user_id.clone(), product_id.clone(), 200, 5100.0);
@@ -56,9 +80,15 @@ async fn test_full_order_system_integration() {
     assert!(result.is_err(), "Should fail when stock is insufficient");
 
     // Verify stock wasn't changed after failed order
-    let stock_after_failure = system.product_client.check_stock(product_id.clone()).await
+    let stock_after_failure = system
+        .product_client
+        .check_stock(product_id.clone())
+        .await
         .expect("Failed to check stock");
-    assert_eq!(stock_after_failure, 95, "Stock should not change on failed order");
+    assert_eq!(
+        stock_after_failure, 95,
+        "Stock should not change on failed order"
+    );
 
     // Graceful shutdown
     system.shutdown().await.expect("Failed to shutdown system");
@@ -83,7 +113,7 @@ async fn test_concurrent_orders() {
         let order_client = system.order_client.clone();
         let uid = user_id.clone();
         let pid = product_id.clone();
-        
+
         let handle = tokio::spawn(async move {
             let order = Order::new("", uid, pid, 2, 20.0);
             order_client.create_order(order).await

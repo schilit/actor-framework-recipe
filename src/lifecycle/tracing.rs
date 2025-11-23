@@ -37,7 +37,7 @@
 pub fn setup_tracing() {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .with_target(false)  // Don't show module paths - we use entity_type instead
-        .compact()  // Compact format shows spans inline (e.g., "order_processing:create_order")
+        .with_target(false) // Don't show module paths - we use entity_type instead
+        .compact() // Compact format shows spans inline (e.g., "order_processing:create_order")
         .init();
 }

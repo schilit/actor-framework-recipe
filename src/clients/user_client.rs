@@ -1,9 +1,9 @@
-use tracing::{debug, instrument};
+use crate::clients::actor_client::ActorClient;
+use crate::framework::{FrameworkError, ResourceClient};
 use crate::model::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
-use crate::framework::{ResourceClient, FrameworkError};
-use crate::clients::actor_client::ActorClient;
 use async_trait::async_trait;
+use tracing::{debug, instrument};
 
 /// Client for interacting with the User actor.
 #[derive(Clone)]
@@ -41,14 +41,20 @@ impl UserClient {
             name: user.name,
             email: user.email,
         };
-        self.inner.create(payload).await.map_err(|e| UserError::ActorCommunicationError(e.to_string()))
+        self.inner
+            .create(payload)
+            .await
+            .map_err(|e| UserError::ActorCommunicationError(e.to_string()))
     }
-    
+
     // New method utilizing the generic update
     #[instrument(skip(self))]
     #[allow(dead_code)]
     pub async fn update_user(&self, id: String, update: UserUpdate) -> Result<User, UserError> {
         debug!("Sending request");
-        self.inner.update(id, update).await.map_err(|e| UserError::ActorCommunicationError(e.to_string()))
+        self.inner
+            .update(id, update)
+            .await
+            .map_err(|e| UserError::ActorCommunicationError(e.to_string()))
     }
 }

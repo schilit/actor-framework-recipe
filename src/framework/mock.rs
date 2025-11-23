@@ -5,10 +5,10 @@
 //! Use [`create_mock_client`] to get a client and a receiver.
 //! Then use helpers like [`expect_create`] or [`expect_action`] to assert behavior.
 
-use crate::framework::{ActorEntity, ResourceClient, ResourceRequest, FrameworkError};
-use tokio::sync::mpsc;
+use crate::framework::{ActorEntity, FrameworkError, ResourceClient, ResourceRequest};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
 
 // =============================================================================
 // EXPECTATION BUILDER API
@@ -59,6 +59,19 @@ pub struct MockClient<T: ActorEntity> {
     _handle: tokio::task::JoinHandle<()>,
 }
 
+impl<T: ActorEntity + Send + 'static> Default for MockClient<T>
+where
+    T::Id: Send,
+    T::CreateParams: Send,
+    T::UpdateParams: Send,
+    T::Action: Send,
+    T::ActionResult: Send,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: ActorEntity + Send + 'static> MockClient<T>
 where
     T::Id: Send,
@@ -81,19 +94,45 @@ where
                 drop(exps); // Release lock before async operations
 
                 match (request, expectation) {
-                    (ResourceRequest::Get { id: _, respond_to }, Some(Expectation::Get { id: _, response })) => {
+                    (
+                        ResourceRequest::Get { id: _, respond_to },
+                        Some(Expectation::Get { id: _, response }),
+                    ) => {
                         let _ = respond_to.send(response);
                     }
-                    (ResourceRequest::Create { params: _, respond_to }, Some(Expectation::Create { response })) => {
+                    (
+                        ResourceRequest::Create {
+                            params: _,
+                            respond_to,
+                        },
+                        Some(Expectation::Create { response }),
+                    ) => {
                         let _ = respond_to.send(response);
                     }
-                    (ResourceRequest::Update { id: _, update: _, respond_to }, Some(Expectation::Update { id: _, response })) => {
+                    (
+                        ResourceRequest::Update {
+                            id: _,
+                            update: _,
+                            respond_to,
+                        },
+                        Some(Expectation::Update { id: _, response }),
+                    ) => {
                         let _ = respond_to.send(response);
                     }
-                    (ResourceRequest::Delete { id: _, respond_to }, Some(Expectation::Delete { id: _, response })) => {
+                    (
+                        ResourceRequest::Delete { id: _, respond_to },
+                        Some(Expectation::Delete { id: _, response }),
+                    ) => {
                         let _ = respond_to.send(response);
                     }
-                    (ResourceRequest::Action { id: _, action: _, respond_to }, Some(Expectation::Action { id: _, response })) => {
+                    (
+                        ResourceRequest::Action {
+                            id: _,
+                            action: _,
+                            respond_to,
+                        },
+                        Some(Expectation::Action { id: _, response }),
+                    ) => {
                         let _ = respond_to.send(response);
                     }
                     _ => {
@@ -182,9 +221,7 @@ impl<T: ActorEntity> CreateExpectationBuilder<T> {
     /// Sets the expectation to return a successful result.
     pub fn return_ok(self, id: T::Id) {
         let mut exps = self.expectations.lock().unwrap();
-        exps.push_back(Expectation::Create {
-            response: Ok(id),
-        });
+        exps.push_back(Expectation::Create { response: Ok(id) });
     }
 
     /// Sets the expectation to return an error.
@@ -237,13 +274,20 @@ impl<T: ActorEntity> ActionExpectationBuilder<T> {
 /// This allows us to simulate the Actor's behavior (success, failure, delays) deterministically.
 ///
 /// **Note**: Consider using [`MockClient`] for a more fluent API.
-pub fn create_mock_client<T: ActorEntity>(buffer_size: usize) -> (ResourceClient<T>, mpsc::Receiver<ResourceRequest<T>>) {
+pub fn create_mock_client<T: ActorEntity>(
+    buffer_size: usize,
+) -> (ResourceClient<T>, mpsc::Receiver<ResourceRequest<T>>) {
     let (sender, receiver) = mpsc::channel(buffer_size);
     (ResourceClient::new(sender), receiver)
 }
 
 /// Helper to verify that the next message is a Create request
-pub async fn expect_create<T: ActorEntity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::CreateParams, tokio::sync::oneshot::Sender<Result<T::Id, FrameworkError>>)> {
+pub async fn expect_create<T: ActorEntity>(
+    receiver: &mut mpsc::Receiver<ResourceRequest<T>>,
+) -> Option<(
+    T::CreateParams,
+    tokio::sync::oneshot::Sender<Result<T::Id, FrameworkError>>,
+)> {
     match receiver.recv().await {
         Some(ResourceRequest::Create { params, respond_to }) => Some((params, respond_to)),
         _ => None,
@@ -251,7 +295,12 @@ pub async fn expect_create<T: ActorEntity>(receiver: &mut mpsc::Receiver<Resourc
 }
 
 /// Helper to verify that the next message is a Get request
-pub async fn expect_get<T: ActorEntity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::Id, tokio::sync::oneshot::Sender<Result<Option<T>, FrameworkError>>)> {
+pub async fn expect_get<T: ActorEntity>(
+    receiver: &mut mpsc::Receiver<ResourceRequest<T>>,
+) -> Option<(
+    T::Id,
+    tokio::sync::oneshot::Sender<Result<Option<T>, FrameworkError>>,
+)> {
     match receiver.recv().await {
         Some(ResourceRequest::Get { id, respond_to }) => Some((id, respond_to)),
         _ => None,
@@ -259,9 +308,19 @@ pub async fn expect_get<T: ActorEntity>(receiver: &mut mpsc::Receiver<ResourceRe
 }
 
 /// Helper to verify that the next message is an Action request
-pub async fn expect_action<T: ActorEntity>(receiver: &mut mpsc::Receiver<ResourceRequest<T>>) -> Option<(T::Id, T::Action, tokio::sync::oneshot::Sender<Result<T::ActionResult, FrameworkError>>)> {
+pub async fn expect_action<T: ActorEntity>(
+    receiver: &mut mpsc::Receiver<ResourceRequest<T>>,
+) -> Option<(
+    T::Id,
+    T::Action,
+    tokio::sync::oneshot::Sender<Result<T::ActionResult, FrameworkError>>,
+)> {
     match receiver.recv().await {
-        Some(ResourceRequest::Action { id, action, respond_to }) => Some((id, action, respond_to)),
+        Some(ResourceRequest::Action {
+            id,
+            action,
+            respond_to,
+        }) => Some((id, action, respond_to)),
         _ => None,
     }
 }
@@ -277,11 +336,16 @@ mod tests {
 
         // Test Create
         let create_task = tokio::spawn(async move {
-            let user = UserCreate { name: "Test".to_string(), email: "test@example.com".to_string() };
+            let user = UserCreate {
+                name: "Test".to_string(),
+                email: "test@example.com".to_string(),
+            };
             client.create(user).await
         });
 
-        let (payload, responder) = expect_create(&mut receiver).await.expect("Expected Create request");
+        let (payload, responder) = expect_create(&mut receiver)
+            .await
+            .expect("Expected Create request");
         assert_eq!(payload.name, "Test");
         responder.send(Ok("user_1".to_string())).unwrap();
 
@@ -295,15 +359,19 @@ mod tests {
 
         // Create mock with fluent expectation API
         let mut mock = MockClient::<User>::new();
-        
+
         // Set up expectations
         mock.expect_create().return_ok("user_1".to_string());
-        mock.expect_get("user_1".to_string()).return_ok(Some(User::new("user_1", "test@example.com")));
-        
+        mock.expect_get("user_1".to_string())
+            .return_ok(Some(User::new("user_1", "test@example.com")));
+
         let client = mock.client();
 
         // Execute operations
-        let user = UserCreate { name: "Test".to_string(), email: "test@example.com".to_string() };
+        let user = UserCreate {
+            name: "Test".to_string(),
+            email: "test@example.com".to_string(),
+        };
         let id = client.create(user).await.unwrap();
         assert_eq!(id, "user_1");
 

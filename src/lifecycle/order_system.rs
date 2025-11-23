@@ -1,5 +1,5 @@
-use tracing::{info, error};
-use crate::clients::{OrderClient, UserClient, ProductClient};
+use crate::clients::{OrderClient, ProductClient, UserClient};
+use tracing::{error, info};
 
 /// The main runtime orchestrator for the actor-based order management system.
 ///
@@ -19,7 +19,7 @@ use crate::clients::{OrderClient, UserClient, ProductClient};
 ///
 /// ```ignore
 /// let system = OrderSystem::new();
-/// 
+///
 /// // Use the clients to interact with actors
 /// let user_id = system.user_client.create_user(user_data).await?;
 /// let product_id = system.product_client.create_product(product_data).await?;
@@ -31,15 +31,21 @@ use crate::clients::{OrderClient, UserClient, ProductClient};
 pub struct OrderSystem {
     /// Client for interacting with the Order actor
     pub order_client: OrderClient,
-    
+
     /// Client for interacting with the User actor
     pub user_client: UserClient,
-    
+
     /// Client for interacting with the Product actor
     pub product_client: ProductClient,
-    
+
     /// Task handles for all running actors (used for graceful shutdown)
     handles: Vec<tokio::task::JoinHandle<()>>,
+}
+
+impl Default for OrderSystem {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OrderSystem {
@@ -64,12 +70,10 @@ impl OrderSystem {
         // User and Product have no dependencies (Context = ())
         let user_handle = tokio::spawn(user_actor.run(()));
         let product_handle = tokio::spawn(product_actor.run(()));
-        
+
         // Order actor needs User and Product clients (Context = (UserClient, ProductClient))
-        let order_handle = tokio::spawn(order_actor.run((
-            user_client.clone(),
-            product_client.clone()
-        )));
+        let order_handle =
+            tokio::spawn(order_actor.run((user_client.clone(), product_client.clone())));
 
         Self {
             order_client,
@@ -105,11 +109,11 @@ impl OrderSystem {
     /// ```
     pub async fn shutdown(self) -> Result<(), String> {
         info!("Shutting down system...");
-        
+
         // =====================================================================
         // Step 1: Close all channels by dropping clients
         // =====================================================================
-        
+
         // When we drop the clients, their internal channel senders are dropped.
         // This causes the actors' receivers to return None, signaling shutdown.
         drop(self.order_client);
@@ -119,7 +123,7 @@ impl OrderSystem {
         // =====================================================================
         // Step 2: Wait for all actor tasks to complete
         // =====================================================================
-        
+
         for handle in self.handles {
             // Wait for the actor task to finish
             // If the task panicked, this will return an Err
@@ -128,7 +132,7 @@ impl OrderSystem {
                 return Err(format!("Actor task failed: {:?}", e));
             }
         }
-        
+
         info!("System shutdown complete.");
         Ok(())
     }

@@ -1,8 +1,8 @@
 //! Error types for the Order actor.
 
-use thiserror::Error;
-use crate::user_actor::UserError;
 use crate::product_actor::ProductError;
+use crate::user_actor::UserError;
+use thiserror::Error;
 
 /// Errors that can occur during order operations.
 ///

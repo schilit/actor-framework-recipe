@@ -5,10 +5,10 @@
 //!
 //! See the trait implementation on [`User`] for method documentation.
 
-use async_trait::async_trait;
 use crate::framework::ActorEntity;
 use crate::model::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
+use async_trait::async_trait;
 
 #[derive(Debug)]
 pub enum UserAction {
@@ -36,7 +36,11 @@ impl ActorEntity for User {
 
     /// Creates a new User from creation parameters.
     fn from_create_params(id: String, params: UserCreate) -> Result<Self, Self::Error> {
-        Ok(User { id, name: params.name, email: params.email })
+        Ok(User {
+            id,
+            name: params.name,
+            email: params.email,
+        })
     }
 
     /// Handles updates to the User entity.
@@ -44,7 +48,11 @@ impl ActorEntity for User {
     /// # Fields Updated
     /// - `name`: User's display name
     /// - `email`: User's email address
-    async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context) -> Result<(), Self::Error> {
+    async fn on_update(
+        &mut self,
+        update: UserUpdate,
+        _ctx: &Self::Context,
+    ) -> Result<(), Self::Error> {
         if let Some(name) = update.name {
             self.name = name;
         }
@@ -54,7 +62,11 @@ impl ActorEntity for User {
         Ok(())
     }
 
-    async fn handle_action(&mut self, _action: UserAction, _ctx: &Self::Context) -> Result<(), Self::Error> {
+    async fn handle_action(
+        &mut self,
+        _action: UserAction,
+        _ctx: &Self::Context,
+    ) -> Result<(), Self::Error> {
         Ok(())
     }
 }

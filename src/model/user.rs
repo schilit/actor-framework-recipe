@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Represents a registered user in the system.
 ///
@@ -30,7 +30,6 @@ pub struct UserUpdate {
     pub name: Option<String>,
     pub email: Option<String>,
 }
-
 
 impl User {
     /// Creates a new User instance.

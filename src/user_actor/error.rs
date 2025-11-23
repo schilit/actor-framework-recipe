@@ -3,7 +3,7 @@
 use thiserror::Error;
 
 /// Errors that can occur during user operations.
-/// 
+///
 /// This error type is used both by the client (UserClient) and internally
 /// by the User entity's lifecycle hooks.
 #[derive(Debug, Error)]

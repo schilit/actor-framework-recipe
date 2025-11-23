@@ -1,11 +1,11 @@
-use actor_recipe::clients::{OrderClient, UserClient, ProductClient, actor_client::ActorClient};
-use actor_recipe::model::{Order, User, Product};
-use actor_recipe::framework::{ResourceActor, mock::MockClient};
+use actor_recipe::clients::{actor_client::ActorClient, OrderClient, ProductClient, UserClient};
+use actor_recipe::framework::{mock::MockClient, ResourceActor};
+use actor_recipe::model::{Order, Product, User};
 use actor_recipe::product_actor::ProductActionResult;
 
 /// Integration test: Real Order actor with mocked User and Product dependencies.
 /// This tests the Order actor's validation logic (on_create) while isolating it from User/Product actors.
-/// 
+///
 /// Pattern 2: Actor + Mocks
 /// - Real Order actor (tests actor logic in on_create)
 /// - Mocked User and Product clients (isolates dependencies)
@@ -17,11 +17,13 @@ async fn test_order_actor_with_mocked_dependencies() {
 
     // Define expectations for the dependencies
     // Order::on_create will call user_client.get() and product_client.reserve_stock()
-    user_mock.expect_get("user_1".to_string())
+    user_mock
+        .expect_get("user_1".to_string())
         .return_ok(Some(User::new("user_1", "alice@example.com")));
 
     // reserve_stock() internally calls perform_action()
-    product_mock.expect_action("product_1".to_string())
+    product_mock
+        .expect_action("product_1".to_string())
         .return_ok(ProductActionResult::ReserveStock(()));
 
     // Create clients from mocks
@@ -32,10 +34,7 @@ async fn test_order_actor_with_mocked_dependencies() {
     let (order_actor, order_client) = actor_recipe::order_actor::new();
 
     // Spawn the real actor with injected context
-    let actor_handle = tokio::spawn(order_actor.run((
-        user_client.clone(), 
-        product_client.clone()
-    )));
+    let actor_handle = tokio::spawn(order_actor.run((user_client.clone(), product_client.clone())));
 
     // Execute: This will run through the REAL Order actor
     // The validation happens in Order::on_create

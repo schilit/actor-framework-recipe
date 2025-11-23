@@ -5,11 +5,11 @@ pub mod error;
 
 pub use error::*;
 
-use crate::framework::ResourceActor;
 use crate::clients::UserClient;
+use crate::framework::ResourceActor;
 use crate::model::User;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 /// Creates a new User actor and its client.
 pub fn new() -> (ResourceActor<User>, UserClient) {

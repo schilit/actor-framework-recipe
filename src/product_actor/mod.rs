@@ -7,11 +7,11 @@ pub mod error;
 pub use actions::*;
 pub use error::*;
 
-use crate::framework::ResourceActor;
 use crate::clients::ProductClient;
+use crate::framework::ResourceActor;
 use crate::model::Product;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 /// Creates a new Product actor and its client.
 pub fn new() -> (ResourceActor<Product>, ProductClient) {

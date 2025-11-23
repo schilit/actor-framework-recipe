@@ -7,10 +7,10 @@
 //!
 //! See the trait implementation on [`Product`] for method documentation.
 
-use async_trait::async_trait;
 use crate::framework::ActorEntity;
 use crate::model::{Product, ProductCreate, ProductUpdate};
 use crate::product_actor::{ProductAction, ProductActionResult, ProductError};
+use async_trait::async_trait;
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
@@ -40,7 +40,11 @@ impl ActorEntity for Product {
     /// # Fields Updated
     /// - `price`: Product price
     /// - `quantity`: Available stock quantity
-    async fn on_update(&mut self, update: ProductUpdate, _ctx: &Self::Context) -> Result<(), Self::Error> {
+    async fn on_update(
+        &mut self,
+        update: ProductUpdate,
+        _ctx: &Self::Context,
+    ) -> Result<(), Self::Error> {
         if let Some(price) = update.price {
             self.price = price;
         }
@@ -55,19 +59,21 @@ impl ActorEntity for Product {
     /// # Actions
     /// - `CheckStock`: Returns true if requested quantity is available
     /// - `ReserveStock`: Decrements stock if available, returns true on success
-    async fn handle_action(&mut self, action: ProductAction, _ctx: &Self::Context) -> Result<ProductActionResult, Self::Error> {
+    async fn handle_action(
+        &mut self,
+        action: ProductAction,
+        _ctx: &Self::Context,
+    ) -> Result<ProductActionResult, Self::Error> {
         match action {
-            ProductAction::CheckStock => {
-                Ok(ProductActionResult::CheckStock(self.quantity))
-            }
+            ProductAction::CheckStock => Ok(ProductActionResult::CheckStock(self.quantity)),
             ProductAction::ReserveStock(quantity) => {
                 if self.quantity >= quantity {
                     self.quantity -= quantity;
                     Ok(ProductActionResult::ReserveStock(()))
                 } else {
-                    Err(ProductError::InsufficientStock { 
-                        requested: quantity, 
-                        available: self.quantity 
+                    Err(ProductError::InsufficientStock {
+                        requested: quantity,
+                        available: self.quantity,
                     })
                 }
             }

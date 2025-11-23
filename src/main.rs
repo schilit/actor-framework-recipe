@@ -20,10 +20,9 @@
 //!
 //! See [`framework::mock`] for utilities to test clients without spawning full actors.
 
+use actor_recipe::lifecycle::{setup_tracing, OrderSystem};
+use actor_recipe::model::{Order, Product, User};
 use tracing::{error, info, Instrument};
-use actor_recipe::model::{User, Order, Product};
-use actor_recipe::lifecycle::{OrderSystem, setup_tracing};
-
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -41,7 +40,10 @@ async fn main() -> Result<(), String> {
     let span = tracing::info_span!("user_creation");
     let user_id = async {
         info!("Creating test user");
-        system.user_client.create_user(user).await
+        system
+            .user_client
+            .create_user(user)
+            .await
             .map_err(|e| e.to_string())
     }
     .instrument(span)
@@ -53,14 +55,18 @@ async fn main() -> Result<(), String> {
     let product = Product::new("temp_id", "Test Product", 100.0, 10);
     let product_id = async {
         info!("Creating test product");
-        system.product_client.create_product(product).await
+        system
+            .product_client
+            .create_product(product)
+            .await
             .map_err(|e| e.to_string())
-    }.await?;
+    }
+    .await?;
 
     info!(product_id = %product_id, "Product created successfully");
 
     // Create test order - this will flow through multiple actors
-    // Note: The ID passed to Order::new is ignored by the system during creation, 
+    // Note: The ID passed to Order::new is ignored by the system during creation,
     // as the system generates a new ID.
     let order = Order::new("temp_order_id", user_id, product_id, 5, 50.0);
 

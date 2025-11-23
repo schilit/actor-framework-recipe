@@ -5,11 +5,11 @@
 //!
 //! See the trait implementation on [`Order`] for method documentation.
 
-use async_trait::async_trait;
+use crate::clients::{actor_client::ActorClient, ProductClient, UserClient};
 use crate::framework::ActorEntity;
 use crate::model::{Order, OrderCreate};
-use crate::clients::{UserClient, ProductClient, actor_client::ActorClient};
 use crate::order_actor::OrderError;
+use async_trait::async_trait;
 
 /// Marker constant to ensure module documentation is rendered.
 #[doc(hidden)]
@@ -31,32 +31,48 @@ impl ActorEntity for Order {
 
     /// Creates a new Order from creation parameters.
     fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, Self::Error> {
-        Ok(Self::new(id, params.user_id, params.product_id, params.quantity, params.total))
+        Ok(Self::new(
+            id,
+            params.user_id,
+            params.product_id,
+            params.quantity,
+            params.total,
+        ))
     }
 
     /// Validates the order by checking User existence and reserving Product stock.
-    async fn on_create(&mut self, (user_client, product_client): &Self::Context) -> Result<(), Self::Error> {
+    async fn on_create(
+        &mut self,
+        (user_client, product_client): &Self::Context,
+    ) -> Result<(), Self::Error> {
         // 1. Validate User
         let user = user_client.get(self.user_id.clone()).await?;
-        
+
         if user.is_none() {
             return Err(OrderError::InvalidUser(self.user_id.clone()));
         }
 
         // 2. Reserve Stock - errors automatically convert via #[from]
-        product_client.reserve_stock(
-            self.product_id.clone(), 
-            self.quantity
-        ).await?;
+        product_client
+            .reserve_stock(self.product_id.clone(), self.quantity)
+            .await?;
 
         Ok(())
     }
 
-    async fn handle_action(&mut self, _action: Self::Action, _ctx: &Self::Context) -> Result<Self::ActionResult, Self::Error> {
+    async fn handle_action(
+        &mut self,
+        _action: Self::Action,
+        _ctx: &Self::Context,
+    ) -> Result<Self::ActionResult, Self::Error> {
         Ok(())
     }
 
-    async fn on_update(&mut self, _update: Self::UpdateParams, _ctx: &Self::Context) -> Result<(), Self::Error> {
+    async fn on_update(
+        &mut self,
+        _update: Self::UpdateParams,
+        _ctx: &Self::Context,
+    ) -> Result<(), Self::Error> {
         Ok(())
     }
 

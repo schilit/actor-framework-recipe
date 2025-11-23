@@ -10,11 +10,10 @@
 //! - [`FrameworkError`]: Common errors (e.g., ActorClosed, NotFound).
 
 use std::collections::HashMap;
-use std::hash::Hash;
 use std::fmt::{Debug, Display};
+use std::hash::Hash;
 use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, info, warn};
-
 
 // =============================================================================
 // 1. THE ABSTRACTION (Traits with Hooks, DTOs, and Actions)
@@ -55,16 +54,16 @@ use async_trait::async_trait;
 pub trait ActorEntity: Clone + Send + Sync + 'static {
     /// The unique identifier for this entity (e.g., String, Uuid, u64).
     type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
-    
+
     /// The data required to create a new instance (DTO - Data Transfer Object).
     type CreateParams: Send + Sync + Debug;
-    
+
     /// The data required to update an existing instance.
     type UpdateParams: Send + Sync + Debug;
-    
+
     /// Enum representing resource-specific operations (e.g., `ReserveStock`).
     type Action: Send + Sync + Debug;
-    
+
     /// The result type returned by custom actions.
     type ActionResult: Send + Sync + Debug;
 
@@ -84,18 +83,30 @@ pub trait ActorEntity: Clone + Send + Sync + 'static {
 
     /// Called immediately after the entity is created and initialized.
     /// Use this hook to perform validation or side effects (e.g., checking other actors).
-    async fn on_create(&mut self, _ctx: &Self::Context) -> Result<(), Self::Error> { Ok(()) }
+    async fn on_create(&mut self, _ctx: &Self::Context) -> Result<(), Self::Error> {
+        Ok(())
+    }
 
     /// Called when an update request is received.
-    async fn on_update(&mut self, update: Self::UpdateParams, _ctx: &Self::Context) -> Result<(), Self::Error>;
+    async fn on_update(
+        &mut self,
+        update: Self::UpdateParams,
+        _ctx: &Self::Context,
+    ) -> Result<(), Self::Error>;
 
     /// Called immediately before the entity is removed from the system.
-    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), Self::Error> { Ok(()) }
+    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), Self::Error> {
+        Ok(())
+    }
 
     // --- Action Handler (Async) ---
-    
+
     /// Handle a custom resource-specific action.
-    async fn handle_action(&mut self, action: Self::Action, _ctx: &Self::Context) -> Result<Self::ActionResult, Self::Error>;
+    async fn handle_action(
+        &mut self,
+        action: Self::Action,
+        _ctx: &Self::Context,
+    ) -> Result<Self::ActionResult, Self::Error>;
 }
 
 // =============================================================================
@@ -159,15 +170,12 @@ pub enum ResourceRequest<T: ActorEntity> {
         respond_to: Response<T>,
     },
     #[allow(dead_code)]
-    Delete {
-        id: T::Id,
-        respond_to: Response<()>,
-    },
+    Delete { id: T::Id, respond_to: Response<()> },
     Action {
         id: T::Id,
         action: T::Action,
         respond_to: Response<T::ActionResult>,
-    }
+    },
 }
 
 // =============================================================================
@@ -193,8 +201,8 @@ pub struct ResourceActor<T: ActorEntity> {
 
 impl<T: ActorEntity> ResourceActor<T> {
     pub fn new(
-        buffer_size: usize, 
-        next_id_fn: impl Fn() -> T::Id + Send + Sync + 'static
+        buffer_size: usize,
+        next_id_fn: impl Fn() -> T::Id + Send + Sync + 'static,
     ) -> (Self, ResourceClient<T>) {
         let (sender, receiver) = mpsc::channel(buffer_size);
         let actor = Self {
@@ -219,19 +227,20 @@ impl<T: ActorEntity> ResourceActor<T> {
             .last()
             .unwrap_or("Unknown");
         info!(entity_type, "Actor started");
-        
+
         while let Some(msg) = self.receiver.recv().await {
             match msg {
                 ResourceRequest::Create { params, respond_to } => {
                     debug!(entity_type, ?params, "Create");
                     let id = (self.next_id_fn)();
-                    
+
                     match T::from_create_params(id.clone(), params) {
                         Ok(mut item) => {
                             // Await the async hook
                             if let Err(e) = item.on_create(&context).await {
                                 warn!(entity_type, error = %e, "on_create failed");
-                                let _ = respond_to.send(Err(FrameworkError::EntityError(Box::new(e))));
+                                let _ =
+                                    respond_to.send(Err(FrameworkError::EntityError(Box::new(e))));
                                 continue;
                             }
                             self.store.insert(id.clone(), item);
@@ -250,7 +259,11 @@ impl<T: ActorEntity> ResourceActor<T> {
                     debug!(entity_type, %id, found, "Get");
                     let _ = respond_to.send(Ok(item));
                 }
-                ResourceRequest::Update { id, update, respond_to } => {
+                ResourceRequest::Update {
+                    id,
+                    update,
+                    respond_to,
+                } => {
                     debug!(entity_type, %id, ?update, "Update");
                     if let Some(item) = self.store.get_mut(&id) {
                         // Await the async hook
@@ -283,11 +296,17 @@ impl<T: ActorEntity> ResourceActor<T> {
                         let _ = respond_to.send(Err(FrameworkError::NotFound(id.to_string())));
                     }
                 }
-                ResourceRequest::Action { id, action, respond_to } => {
+                ResourceRequest::Action {
+                    id,
+                    action,
+                    respond_to,
+                } => {
                     debug!(entity_type, %id, ?action, "Action");
                     if let Some(item) = self.store.get_mut(&id) {
                         // Await the async hook
-                        let result = item.handle_action(action, &context).await
+                        let result = item
+                            .handle_action(action, &context)
+                            .await
                             .map_err(|e| FrameworkError::EntityError(Box::new(e)));
                         match &result {
                             Ok(_) => info!(entity_type, %id, "Action ok"),
@@ -301,7 +320,7 @@ impl<T: ActorEntity> ResourceActor<T> {
                 }
             }
         }
-        
+
         info!(entity_type, size = self.store.len(), "Shutdown");
     }
 }
@@ -323,37 +342,59 @@ impl<T: ActorEntity> ResourceClient<T> {
 
     pub async fn create(&self, params: T::CreateParams) -> Result<T::Id, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
-        self.sender.send(ResourceRequest::Create { params, respond_to })
-            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        self.sender
+            .send(ResourceRequest::Create { params, respond_to })
+            .await
+            .map_err(|_| FrameworkError::ActorClosed)?;
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
     pub async fn get(&self, id: T::Id) -> Result<Option<T>, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
-        self.sender.send(ResourceRequest::Get { id, respond_to })
-            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        self.sender
+            .send(ResourceRequest::Get { id, respond_to })
+            .await
+            .map_err(|_| FrameworkError::ActorClosed)?;
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
     pub async fn update(&self, id: T::Id, update: T::UpdateParams) -> Result<T, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
-        self.sender.send(ResourceRequest::Update { id, update, respond_to })
-            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        self.sender
+            .send(ResourceRequest::Update {
+                id,
+                update,
+                respond_to,
+            })
+            .await
+            .map_err(|_| FrameworkError::ActorClosed)?;
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
     #[allow(dead_code)]
     pub async fn delete(&self, id: T::Id) -> Result<(), FrameworkError> {
         let (respond_to, response) = oneshot::channel();
-        self.sender.send(ResourceRequest::Delete { id, respond_to })
-            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        self.sender
+            .send(ResourceRequest::Delete { id, respond_to })
+            .await
+            .map_err(|_| FrameworkError::ActorClosed)?;
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
-    pub async fn perform_action(&self, id: T::Id, action: T::Action) -> Result<T::ActionResult, FrameworkError> {
+    pub async fn perform_action(
+        &self,
+        id: T::Id,
+        action: T::Action,
+    ) -> Result<T::ActionResult, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
-        self.sender.send(ResourceRequest::Action { id, action, respond_to })
-            .await.map_err(|_| FrameworkError::ActorClosed)?;
+        self.sender
+            .send(ResourceRequest::Action {
+                id,
+                action,
+                respond_to,
+            })
+            .await
+            .map_err(|_| FrameworkError::ActorClosed)?;
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 }
@@ -365,8 +406,8 @@ impl<T: ActorEntity> ResourceClient<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
 
     // --- Domain Definition ---
 
@@ -421,14 +462,22 @@ mod tests {
             })
         }
 
-        async fn on_update(&mut self, update: SimpleUserUpdate, _ctx: &Self::Context) -> Result<(), Self::Error> {
+        async fn on_update(
+            &mut self,
+            update: SimpleUserUpdate,
+            _ctx: &Self::Context,
+        ) -> Result<(), Self::Error> {
             if let Some(name) = update.name {
                 self.name = name;
             }
             Ok(())
         }
 
-        async fn handle_action(&mut self, action: UserAction, _ctx: &Self::Context) -> Result<bool, Self::Error> {
+        async fn handle_action(
+            &mut self,
+            action: UserAction,
+            _ctx: &Self::Context,
+        ) -> Result<bool, Self::Error> {
             match action {
                 UserAction::PromoteToAdmin => {
                     if self.is_admin {
@@ -462,11 +511,16 @@ mod tests {
         tokio::spawn(actor.run(()));
 
         // 1. Create
-        let payload = SimpleUserCreate { name: "Alice".into() };
+        let payload = SimpleUserCreate {
+            name: "Alice".into(),
+        };
         let id: String = client.create(payload).await.unwrap();
 
         // 2. Perform Action: Promote
-        let changed: bool = client.perform_action(id.clone(), UserAction::PromoteToAdmin).await.unwrap();
+        let changed: bool = client
+            .perform_action(id.clone(), UserAction::PromoteToAdmin)
+            .await
+            .unwrap();
         assert!(changed);
 
         // Verify state
@@ -474,11 +528,16 @@ mod tests {
         assert!(user.is_admin);
 
         // 3. Perform Action: Promote again (should return false)
-        let changed_again: bool = client.perform_action(id.clone(), UserAction::PromoteToAdmin).await.unwrap();
+        let changed_again: bool = client
+            .perform_action(id.clone(), UserAction::PromoteToAdmin)
+            .await
+            .unwrap();
         assert!(!changed_again);
 
         // 4. Update
-        let update = SimpleUserUpdate { name: Some("Bob".into()) };
+        let update = SimpleUserUpdate {
+            name: Some("Bob".into()),
+        };
         let updated_user = client.update(id.clone(), update).await.unwrap();
         assert_eq!(updated_user.name, "Bob");
 
