@@ -24,7 +24,7 @@
 //! we use DTOs to represent different "views" of an entity for different operations.
 //!
 //! **Entity** - The full resource with all fields:
-//! ```rust,ignore
+//! ```rust
 //! pub struct User {
 //!     pub id: String,
 //!     pub name: String,
@@ -33,7 +33,7 @@
 //! ```
 //!
 //! **Create DTO** - Parameters for creating a new resource (no ID):
-//! ```rust,ignore
+//! ```rust
 //! pub struct UserCreate {
 //!     pub name: String,
 //!     pub email: String,
@@ -41,7 +41,7 @@
 //! ```
 //!
 //! **Update DTO** - Partial updates (all fields optional):
-//! ```rust,ignore
+//! ```rust
 //! pub struct UserUpdate {
 //!     pub name: Option<String>,
 //!     pub email: Option<String>,

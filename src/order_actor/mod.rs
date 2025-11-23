@@ -55,7 +55,11 @@
 //!
 //! The Order actor demonstrates automatic error conversion with `#[from]`:
 //!
-//! ```rust,ignore
+//! ```rust
+//! use thiserror::Error;
+//! use actor_recipe::user_actor::UserError;
+//! use actor_recipe::product_actor::ProductError;
+//!
 //! #[derive(Debug, Error)]
 //! pub enum OrderError {
 //!     #[error("User service error: {0}")]
