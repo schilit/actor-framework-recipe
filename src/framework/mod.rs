@@ -135,7 +135,7 @@
 //!
 //! ## Testing
 //!
-//! See the [`mock`] module for comprehensive testing utilities and patterns.
+//! The framework provides a **MockClient** type that implements the same `ResourceClient<T>` API as the real client but operates entirely in‑memory. It lets you write fast, deterministic unit tests for client logic (e.g. `OrderClient`) without spawning any actors. See the [`mock`](crate::framework::mock) module for the full API and usage patterns.
 
 pub mod core;
 pub mod mock;

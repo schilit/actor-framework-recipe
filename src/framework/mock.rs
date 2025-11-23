@@ -1,6 +1,6 @@
 //! # Mock Framework & Testing Guide
 //!
-//! This module provides utilities for testing actors and clients in isolation.
+//! The `MockClient<T>` type implements the same `ResourceClient<T>` API as the production client but operates entirely in‑memory. It lets you set expectations and return values for unit tests, enabling fast, deterministic testing of client logic without spawning any actors.
 //!
 //! ## Testing Strategies
 //!
@@ -9,7 +9,7 @@
 //! <details>
 //! <summary><b>Pattern 0: Client Logic Test (Pure Mock)</b></summary>
 //!
-//! **When to use**: Testing complex orchestration logic in your *Client* (e.g., `OrderClient`) without spinning up any actors.
+//! **When to use**: Testing complex orchestration logic in your *Client* (e.g., [`OrderClient`](crate::clients::OrderClient)) without spinning up any actors.
 //!
 //! **Example**:
 //! ```rust,ignore
