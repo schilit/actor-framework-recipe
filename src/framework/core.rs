@@ -19,6 +19,10 @@ use tracing::{debug, info, warn};
 // 1. THE ABSTRACTION (Traits with Hooks, DTOs, and Actions)
 // =============================================================================
 
+//! # ActorEntity Trait
+//!
+//! The `ActorEntity` trait defines the contract that every resource (User, Product, Order, …) must implement to be managed by the generic `ResourceActor`. It specifies associated types for IDs, DTOs, actions, context, and errors, and provides lifecycle hooks (`on_create`, `on_update`, `on_delete`, `handle_action`). Implementing this trait enables the framework to offer a uniform CRUD + Action API for any domain model.
+//!
 /// Trait that any resource entity must implement to be managed by ResourceActor.
 ///
 /// # Architecture Note
@@ -193,6 +197,14 @@ pub enum ResourceRequest<T: ActorEntity> {
 /// processes its own messages *sequentially* in a loop. This means we don't need
 /// `Mutex` or `RwLock` for the `store`! The "Actor Model" gives us safety through
 /// exclusive ownership of state within the task.
+//! ## ResourceActor
+//!
+//! The `ResourceActor<T>` struct is the *server* side of the framework. It owns the in‑memory store for a given entity type `T: ActorEntity` and processes all incoming `ResourceRequest<T>` messages sequentially. Each actor runs in its own Tokio task, guaranteeing exclusive access to its state without any locking.
+//!
+//! * **Concurrency model** – each actor processes one message at a time, eliminating data races.
+//! * **Context injection** – a user‑provided `Context` is passed to every lifecycle hook, enabling dependency injection.
+//! * **Uniform API** – works with any entity that implements `ActorEntity`, providing a generic CRUD + Action implementation.
+//!
 pub struct ResourceActor<T: ActorEntity> {
     receiver: mpsc::Receiver<ResourceRequest<T>>,
     store: HashMap<T::Id, T>,
@@ -331,6 +343,13 @@ impl<T: ActorEntity> ResourceActor<T> {
 
 /// A type-safe client for interacting with a `ResourceActor`.
 #[derive(Clone)]
+//! ## ResourceClient
+//!
+//! The `ResourceClient<T>` provides a type‑safe, async API for interacting with a `ResourceActor<T>`. It forwards CRUD + Action requests over a Tokio mpsc channel and returns results via oneshot channels. The client is cheap to clone and can be shared across tasks.
+//!
+//! * **Cloneable** – holds only a sender, so cloning is inexpensive.
+//! * **Async API** – all methods return `Future`s that resolve to `Result<…, FrameworkError>`.
+//! * **Generic** – works with any entity that implements `ActorEntity`.
 pub struct ResourceClient<T: ActorEntity> {
     sender: mpsc::Sender<ResourceRequest<T>>,
 }
