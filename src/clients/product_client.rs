@@ -178,7 +178,7 @@ mod tests {
         use crate::framework::FrameworkError;
         responder
             .send(Err(FrameworkError::EntityError(Box::new(
-                std::io::Error::new(std::io::ErrorKind::Other, "Stock check failed"),
+                std::io::Error::other("Stock check failed"),
             ))))
             .unwrap();
 

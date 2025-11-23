@@ -1,5 +1,5 @@
-use actor_recipe::clients::{actor_client::ActorClient, OrderClient, ProductClient, UserClient};
-use actor_recipe::framework::{mock::MockClient, ResourceActor};
+use actor_recipe::clients::{actor_client::ActorClient, ProductClient, UserClient};
+use actor_recipe::framework::mock::MockClient;
 use actor_recipe::model::{Order, Product, User};
 use actor_recipe::product_actor::ProductActionResult;
 
