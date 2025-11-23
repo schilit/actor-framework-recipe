@@ -1,3 +1,9 @@
+//! # Order System
+//!
+//! Provides the runtime orchestrator for the actor‑based order management system.
+//! It wires together the `User`, `Product`, and `Order` actors and exposes
+//! high‑level clients for interacting with them. Includes lifecycle management
+//! and graceful shutdown.
 use crate::clients::{OrderClient, ProductClient, UserClient};
 use tracing::{error, info};
 
