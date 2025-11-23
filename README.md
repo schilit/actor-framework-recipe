@@ -1,4 +1,4 @@
-# Actor Framework Recipe 🦀
+# Actor Framework Recipe
 
 > **A Recipe for Resource-oriented Actors in Rust.**
 
@@ -6,7 +6,7 @@
 
 This recipe demonstrates a pattern for building clean actor systems using Tokio, leveraging Rust's type system to eliminate boilerplate and runtime errors. It is designed as a learning resource for engineers moving from "making it work" to "making it type-safe and maintainable."
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 src/
@@ -39,7 +39,7 @@ src/
 └── integration_tests.rs # ✅ End-to-End Tests
 ```
 
-## 📚 How-To Guide
+## How-To Guide
 
 **New to the framework?** Check out the [**How-To Guide**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md) for step-by-step tutorials:
 
@@ -49,7 +49,7 @@ src/
 - [**How to Handle Errors**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md#how-to-handle-errors) - Type-safe error handling patterns
 - [**Understanding Lifecycle Hooks**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md#understanding-lifecycle-hooks) - When to use `on_create` and `on_delete`
 
-## 🛠 Usage
+## Usage
 
 ### Run the Demo
 ```bash

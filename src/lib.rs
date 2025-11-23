@@ -8,7 +8,7 @@
 //! It combines **Resource-Oriented Architecture (ROA)** with the **Actor Model** to provide
 //! isolated state management with standard CRUD operations.
 //!
-//! ## 🏗️ Design Philosophy
+//! ## Design Philosophy
 //!
 //! ### Why ROA + Actor Model?
 //!
@@ -21,7 +21,7 @@
 //! - **Maintainability**: Clear separation of concerns.
 //! - **Type Safety**: Compile-time guarantees for all operations.
 //!
-//! ## 🚀 Core Concepts
+//! ## Core Concepts
 //!
 //! ### Generics: The Power of `T`
 //! You'll see `ResourceActor<T: ActorEntity>` everywhere. This means "I can be an actor for *anything*, as long as it behaves like an ActorEntity."
@@ -32,7 +32,7 @@
 //! Testing actors can be hard because they are asynchronous. We solved this with `MockClient`.
 //! See the [`framework::mock`] module for a complete guide.
 //!
-//! ## 👩‍💻 Architecture Notes
+//! ## Architecture Notes
 //!
 //! ### 1. Type-Safe Error Handling
 //! Each actor defines its own error type (e.g., `UserError`, `ProductError`) that implements `std::error::Error`.
@@ -52,7 +52,7 @@
 //! providing hierarchical context that's essential for debugging distributed systems.
 //! See the [`lifecycle::tracing`] module for details.
 //!
-//! ## 🗺️ Module Tour
+//! ## Module Tour
 //!
 //! The codebase is organized into four main layers. Here is your map:
 //!
@@ -76,7 +76,7 @@
 //! These are the actual domain actors built using the recipe.
 //! - **Role**: Concrete implementations of the `ActorEntity` trait.
 //!
-//! ## 🚀 Quick Start
+//! ## Quick Start
 //!
 //! If you are new here, start with the **[How-To Guide](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md)**.
 //!
