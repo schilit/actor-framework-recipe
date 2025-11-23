@@ -2,9 +2,9 @@
 //!
 //! This module defines the resource-specific operations (Actions) that can be performed
 //! on a [`Product`](crate::model::Product) entity, such as checking stock or reserving items.
-//! These actions are handled by the [`Entity::handle_action`](crate::framework::Entity::handle_action) method.
+//! These actions are handled by the [`ActorEntity::handle_action`](crate::framework::ActorEntity::handle_action) method.
 //!
-//! See [`impl Entity for Product`](crate::model::Product#impl-Entity-for-Product) for the implementation details.
+//! See [`impl ActorEntity for Product`](crate::model::Product#impl-ActorEntity-for-Product) for the implementation details.
 
 /// Custom actions for Product entities.
 ///
