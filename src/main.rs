@@ -21,7 +21,7 @@
 //! See [`framework::mock`] for utilities to test clients without spawning full actors.
 
 use actor_recipe::lifecycle::{setup_tracing, OrderSystem};
-use actor_recipe::model::{Order, Product, User};
+use actor_recipe::model::{OrderCreate, ProductCreate, UserCreate};
 use tracing::{error, info, Instrument};
 
 #[tokio::main]
@@ -35,14 +35,17 @@ async fn main() -> Result<(), String> {
     let system = OrderSystem::new();
 
     // Create test user
-    let user = User::new("Alice", "alice@example.com");
+    let user_params = UserCreate {
+        name: "Alice".to_string(),
+        email: "alice@example.com".to_string(),
+    };
 
     let span = tracing::info_span!("user_creation");
     let user_id = async {
         info!("Creating test user");
         system
             .user_client
-            .create_user(user)
+            .create_user(user_params)
             .await
             .map_err(|e| e.to_string())
     }
@@ -52,12 +55,16 @@ async fn main() -> Result<(), String> {
     info!(user_id = %user_id, "User created successfully");
 
     // Create test product
-    let product = Product::new("temp_id", "Test Product", 100.0, 10);
+    let product_params = ProductCreate {
+        name: "Test Product".to_string(),
+        price: 100.0,
+        quantity: 10,
+    };
     let product_id = async {
         info!("Creating test product");
         system
             .product_client
-            .create_product(product)
+            .create_product(product_params)
             .await
             .map_err(|e| e.to_string())
     }
@@ -66,14 +73,17 @@ async fn main() -> Result<(), String> {
     info!(product_id = %product_id, "Product created successfully");
 
     // Create test order - this will flow through multiple actors
-    // Note: The ID passed to Order::new is ignored by the system during creation,
-    // as the system generates a new ID.
-    let order = Order::new("temp_order_id", user_id, product_id, 5, 50.0);
+    let order_params = OrderCreate {
+        user_id: user_id.clone(),
+        product_id: product_id.clone(),
+        quantity: 5,
+        total: 500.0,
+    };
 
     let span = tracing::info_span!("order_processing");
     let order_result = async {
         info!("Processing order through order system");
-        system.order_client.create_order(order).await
+        system.order_client.create_order(order_params).await
     }
     .instrument(span)
     .await;

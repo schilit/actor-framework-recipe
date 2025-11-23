@@ -51,15 +51,19 @@
 //!
 //! **Example**:
 //! ```rust
-//! use actor_recipe::model::Product;
+//! use actor_recipe::model::ProductCreate;
 //!
 //! #[tokio::main]
 //! async fn main() {
 //!     let (actor, client) = actor_recipe::product_actor::new();
 //!     tokio::spawn(actor.run(()));
 //!     
-//!     let product = Product::new("", "Test Product", 10.0, 100);
-//!     let id = client.create_product(product).await.unwrap();
+//!     let params = ProductCreate {
+//!         name: "Test Product".to_string(),
+//!         price: 10.0,
+//!         quantity: 100,
+//!     };
+//!     let id = client.create_product(params).await.unwrap();
 //!     assert_eq!(client.check_stock(id).await.unwrap(), 100);
 //! }
 //! ```

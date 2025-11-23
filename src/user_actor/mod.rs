@@ -17,7 +17,7 @@
 //!
 //! ```rust
 //! use actor_recipe::user_actor;
-//! use actor_recipe::model::User;
+//! use actor_recipe::model::UserCreate;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,8 +28,11 @@
 //!     tokio::spawn(actor.run(()));
 //!
 //!     // Use the client
-//!     let user = User::new("Alice", "alice@example.com");
-//!     let id = client.create_user(user).await?;
+//!     let params = UserCreate {
+//!         name: "Alice".to_string(),
+//!         email: "alice@example.com".to_string(),
+//!     };
+//!     let id = client.create_user(params).await?;
 //!     Ok(())
 //! }
 //! ```

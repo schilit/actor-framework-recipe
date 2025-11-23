@@ -1,6 +1,6 @@
 use actor_recipe::clients::actor_client::ActorClient;
 use actor_recipe::lifecycle::OrderSystem;
-use actor_recipe::model::{Order, Product, User};
+use actor_recipe::model::{Order, OrderCreate, Product, ProductCreate, User, UserCreate};
 
 /// Full end-to-end integration test with all real actors.
 /// This tests the entire system working together.
@@ -10,10 +10,13 @@ async fn test_full_order_system_integration() {
     let system = OrderSystem::new();
 
     // Create a user
-    let user = User::new("Alice", "alice@example.com");
+    let user_params = UserCreate {
+        name: "Alice".to_string(),
+        email: "alice@example.com".to_string(),
+    };
     let user_id = system
         .user_client
-        .create_user(user)
+        .create_user(user_params)
         .await
         .expect("Failed to create user");
 
@@ -28,10 +31,14 @@ async fn test_full_order_system_integration() {
     assert_eq!(retrieved_user.email, "alice@example.com");
 
     // Create a product with stock
-    let product = Product::new("", "Super Widget", 25.50, 100);
+    let product_params = ProductCreate {
+        name: "Super Widget".to_string(),
+        price: 25.50,
+        quantity: 100,
+    };
     let product_id = system
         .product_client
-        .create_product(product)
+        .create_product(product_params)
         .await
         .expect("Failed to create product");
 
@@ -44,10 +51,15 @@ async fn test_full_order_system_integration() {
     assert_eq!(initial_stock, 100);
 
     // Create an order (should reserve stock)
-    let order = Order::new("", user_id.clone(), product_id.clone(), 5, 127.50);
+    let order_params = OrderCreate {
+        user_id: user_id.clone(),
+        product_id: product_id.clone(),
+        quantity: 5,
+        total: 127.50,
+    };
     let order_id = system
         .order_client
-        .create_order(order)
+        .create_order(order_params)
         .await
         .expect("Failed to create order");
 
@@ -75,8 +87,13 @@ async fn test_full_order_system_integration() {
     );
 
     // Test insufficient stock scenario
-    let large_order = Order::new("", user_id.clone(), product_id.clone(), 200, 5100.0);
-    let result = system.order_client.create_order(large_order).await;
+    let large_order_params = OrderCreate {
+        user_id: user_id.clone(),
+        product_id: product_id.clone(),
+        quantity: 200,
+        total: 5100.0,
+    };
+    let result = system.order_client.create_order(large_order_params).await;
     assert!(result.is_err(), "Should fail when stock is insufficient");
 
     // Verify stock wasn't changed after failed order
@@ -100,12 +117,19 @@ async fn test_concurrent_orders() {
     let system = OrderSystem::new();
 
     // Create a user
-    let user = User::new("Bob", "bob@example.com");
-    let user_id = system.user_client.create_user(user).await.unwrap();
+    let user_params = UserCreate {
+        name: "Bob".to_string(),
+        email: "bob@example.com".to_string(),
+    };
+    let user_id = system.user_client.create_user(user_params).await.unwrap();
 
     // Create a product with limited stock
-    let product = Product::new("", "Limited Widget", 10.0, 20);
-    let product_id = system.product_client.create_product(product).await.unwrap();
+    let product_params = ProductCreate {
+        name: "Limited Widget".to_string(),
+        price: 10.0,
+        quantity: 20,
+    };
+    let product_id = system.product_client.create_product(product_params).await.unwrap();
 
     // Create multiple orders concurrently
     let mut handles = vec![];
@@ -115,8 +139,13 @@ async fn test_concurrent_orders() {
         let pid = product_id.clone();
 
         let handle = tokio::spawn(async move {
-            let order = Order::new("", uid, pid, 2, 20.0);
-            order_client.create_order(order).await
+            let order_params = OrderCreate {
+                user_id: uid,
+                product_id: pid,
+                quantity: 2,
+                total: 20.0,
+            };
+            order_client.create_order(order_params).await
         });
         handles.push(handle);
     }

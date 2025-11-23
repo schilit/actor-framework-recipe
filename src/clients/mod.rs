@@ -32,12 +32,8 @@
 //!     }
 //!
 //!     // Domain-specific method with type-safe errors
-//!     pub async fn create_user(&self, user: User) -> Result<String, UserError> {
-//!         let payload = UserCreate {
-//!             name: user.name,
-//!             email: user.email,
-//!         };
-//!         self.inner.create(payload).await
+//!     pub async fn create_user(&self, params: UserCreate) -> Result<String, UserError> {
+//!         self.inner.create(params).await
 //!             .map_err(|e| UserError::ActorCommunicationError(e.to_string()))
 //!     }
 //! }
@@ -98,28 +94,27 @@
 //!
 //! ```rust,ignore
 //! impl OrderClient {
-//!     pub async fn create_order(&self, order: Order) -> Result<String, OrderError> {
+//!     pub async fn create_order(&self, params: OrderCreate) -> Result<String, OrderError> {
 //!         // 1. Validate user exists
-//!         let user = self.user_client.get(order.user_id.clone()).await?
-//!             .ok_or_else(|| OrderError::InvalidUser(order.user_id.clone()))?;
+//!         let user = self.user_client.get(params.user_id.clone()).await?
+//!             .ok_or_else(|| OrderError::InvalidUser(params.user_id.clone()))?;
 //!
 //!         // 2. Reserve product stock
 //!         self.product_client.reserve_stock(
-//!             order.product_id.clone(), 
-//!             order.quantity
+//!             params.product_id.clone(), 
+//!             params.quantity
 //!         ).await?;
 //!
 //!         // 3. Create the order
-//!         let payload = OrderCreate { /* ... */ };
-//!         match self.inner.create(payload).await {
+//!         match self.inner.create(params.clone()).await {
 //!             Ok(id) => Ok(id),
 //!             Err(e) => {
 //!                 // COMPENSATING TRANSACTION: Rollback stock reservation
 //!                 // If we fail to create the order, we must release the stock
 //!                 // so it doesn't get "leaked" (permanently reserved).
 //!                 let _ = self.product_client.release_stock(
-//!                     order.product_id, 
-//!                     order.quantity
+//!                     params.product_id, 
+//!                     params.quantity
 //!                 ).await;
 //!                 
 //!                 Err(OrderError::ActorCommunicationError(e.to_string()))

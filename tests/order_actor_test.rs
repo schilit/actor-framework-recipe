@@ -1,6 +1,6 @@
 use actor_recipe::clients::{actor_client::ActorClient, ProductClient, UserClient};
 use actor_recipe::framework::mock::MockClient;
-use actor_recipe::model::{Order, Product, User};
+use actor_recipe::model::{Order, OrderCreate, Product, User};
 use actor_recipe::product_actor::ProductActionResult;
 
 /// Integration test: Real Order actor with mocked User and Product dependencies.
@@ -38,8 +38,13 @@ async fn test_order_actor_with_mocked_dependencies() {
 
     // Execute: This will run through the REAL Order actor
     // The validation happens in Order::on_create
-    let order = Order::new("", "user_1", "product_1", 3, 75.0);
-    let result = order_client.create_order(order).await;
+    let order_params = OrderCreate {
+        user_id: "user_1".to_string(),
+        product_id: "product_1".to_string(),
+        quantity: 3,
+        total: 75.0,
+    };
+    let result = order_client.create_order(order_params).await;
 
     // Verify the order was created
     assert!(result.is_ok(), "Order creation failed: {:?}", result.err());

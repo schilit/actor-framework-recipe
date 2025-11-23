@@ -34,15 +34,10 @@ impl ProductClient {
     // Custom create method as it needs specific payload conversion
 
     #[instrument(skip(self))]
-    pub async fn create_product(&self, product: Product) -> Result<String, ProductError> {
+    pub async fn create_product(&self, params: crate::model::ProductCreate) -> Result<String, ProductError> {
         debug!("Sending request");
-        let payload = crate::model::ProductCreate {
-            name: product.name,
-            price: product.price,
-            quantity: product.quantity,
-        };
         self.inner
-            .create(payload)
+            .create(params)
             .await
             .map_err(|e| ProductError::ActorCommunicationError(e.to_string()))
     }

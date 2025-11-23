@@ -34,15 +34,10 @@ impl UserClient {
     // Custom create method as it needs specific payload conversion
 
     #[instrument(skip(self))]
-    pub async fn create_user(&self, user: User) -> Result<String, UserError> {
+    pub async fn create_user(&self, params: UserCreate) -> Result<String, UserError> {
         debug!("Sending request");
-        // Adapter: Convert legacy User struct to UserCreate payload
-        let payload = UserCreate {
-            name: user.name,
-            email: user.email,
-        };
         self.inner
-            .create(payload)
+            .create(params)
             .await
             .map_err(|e| UserError::ActorCommunicationError(e.to_string()))
     }

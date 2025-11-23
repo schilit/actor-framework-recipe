@@ -19,21 +19,14 @@ impl OrderClient {
         Self { inner }
     }
 
-    #[instrument(skip(self, order))]
-    pub async fn create_order(&self, order: Order) -> Result<String, OrderError> {
-        debug!(?order, "create_order called");
+    #[instrument(skip(self))]
+    pub async fn create_order(&self, params: crate::model::OrderCreate) -> Result<String, OrderError> {
+        debug!("create_order called");
         info!("Sending create_order to actor");
 
         // Create order - validation happens in Order::on_create
-        let payload = crate::model::OrderCreate {
-            user_id: order.user_id,
-            product_id: order.product_id,
-            quantity: order.quantity,
-            total: order.total,
-        };
-
         self.inner
-            .create(payload)
+            .create(params)
             .await
             .map_err(|e| OrderError::ActorCommunicationError(e.to_string()))
     }
