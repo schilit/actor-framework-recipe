@@ -2,7 +2,7 @@
 
 > **A Recipe for Resource-oriented Actors in Rust.**
 
-📚 **[View Full Documentation](https://schilit.github.io/actor-framework-recipe/)**
+**[View Full Documentation](https://schilit.github.io/actor-framework-recipe/)**
 
 This recipe demonstrates a pattern for building clean actor systems using Tokio, leveraging Rust's type system to eliminate boilerplate and runtime errors. It is designed as a learning resource for engineers moving from "making it work" to "making it type-safe and maintainable."
 
@@ -10,33 +10,33 @@ This recipe demonstrates a pattern for building clean actor systems using Tokio,
 
 ```text
 src/
-├── framework/           # 🧠 The Brain: Generic Actor & Client implementation
+├── framework/           # The Brain: Generic Actor & Client implementation
 │   ├── core.rs          #    - ResourceActor, ActorEntity trait, message types
 │   └── mock.rs          #    - Testing utilities and mocks
-├── lifecycle/           # 🎼 The Conductor: System orchestration & lifecycle
+├── lifecycle/           # The Conductor: System orchestration & lifecycle
 │   ├── order_system.rs  #    - Actor wiring and dependency injection
 │   └── tracing.rs       #    - Observability setup
-├── main.rs              # 🏁 Entry Point: Runs the demo application
-├── clients/             # 🔌 The Plugs: Type-safe wrappers for actors
+├── main.rs              # Entry Point: Runs the demo application
+├── clients/             # The Plugs: Type-safe wrappers for actors
 │   ├── actor_client.rs  #    - ActorClient trait (common interface)
 │   ├── user_client.rs   #    - UserClient implementation
 │   ├── product_client.rs#    - ProductClient implementation
 │   └── order_client.rs  #    - OrderClient implementation
-├── model/               # 📦 The Data: Pure data structures (User, Product, Order)
-├── user_actor/          # 👤 User Domain Logic
+├── model/               # The Data: Pure data structures (User, Product, Order)
+├── user_actor/          # User Domain Logic
 │   ├── entity.rs        #    - ActorEntity implementation for User
 │   ├── error.rs         #    - UserError type (type-safe errors)
 │   └── mod.rs           #    - Module exports and factory function
-├── product_actor/       # 📦 Product Domain Logic
+├── product_actor/       # Product Domain Logic
 │   ├── entity.rs        #    - ActorEntity implementation for Product
 │   ├── error.rs         #    - ProductError type
 │   ├── actions.rs       #    - Custom actions (CheckStock, ReserveStock)
 │   └── mod.rs           #    - Module exports and factory function
-├── order_actor/         # 🛒 Order Domain Logic
+├── order_actor/         # Order Domain Logic
 │   ├── entity.rs        #    - ActorEntity implementation with validation
 │   ├── error.rs         #    - OrderError type (with #[from] conversions)
 │   └── mod.rs           #    - Module exports and factory function
-└── integration_tests.rs # ✅ End-to-End Tests
+└── integration_tests.rs # End-to-End Tests
 ```
 
 ## How-To Guide
@@ -70,4 +70,4 @@ cargo test
 
 ---
 
-*Built with ❤️ for the Rust community.*
+*Built with love for the Rust community.*
