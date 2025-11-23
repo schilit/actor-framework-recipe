@@ -107,8 +107,20 @@
 //!
 //!         // 3. Create the order
 //!         let payload = OrderCreate { /* ... */ };
-//!         self.inner.create(payload).await
-//!             .map_err(|e| OrderError::ActorCommunicationError(e.to_string()))
+//!         match self.inner.create(payload).await {
+//!             Ok(id) => Ok(id),
+//!             Err(e) => {
+//!                 // COMPENSATING TRANSACTION: Rollback stock reservation
+//!                 // If we fail to create the order, we must release the stock
+//!                 // so it doesn't get "leaked" (permanently reserved).
+//!                 let _ = self.product_client.release_stock(
+//!                     order.product_id, 
+//!                     order.quantity
+//!                 ).await;
+//!                 
+//!                 Err(OrderError::ActorCommunicationError(e.to_string()))
+//!             }
+//!         }
 //!     }
 //! }
 //! ```
@@ -129,6 +141,7 @@ pub mod order_client;
 pub mod product_client;
 pub mod user_client;
 
+pub use actor_client::*;
 pub use order_client::*;
 pub use product_client::*;
 pub use user_client::*;

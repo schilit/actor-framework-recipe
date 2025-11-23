@@ -10,7 +10,7 @@
 //!
 //! ## Structure
 //!
-//! - [`entity`] - [`ActorEntity`](crate::framework::ActorEntity) implementation for [`Order`](crate::model::Order)
+//! - [`entity`] - [`ActorEntity`](crate::framework::ActorEntity) implementation for [`Order`]
 //! - [`error`] - [`OrderError`] type with automatic error conversion from dependencies
 //! - [`new()`] - Factory function that creates the actor and client
 //!
@@ -18,14 +18,27 @@
 //!
 //! The Order actor requires User and Product clients in its context:
 //!
-//! ```rust,ignore
-//! use crate::order_actor;
+//! ```rust
+//! use actor_recipe::order_actor;
+//! use actor_recipe::framework::mock::MockClient;
+//! use actor_recipe::clients::{UserClient, ProductClient};
+//! use actor_recipe::model::{User, Product};
 //!
-//! // Create actor and client
-//! let (actor, client) = order_actor::new();
+//! #[tokio::main]
+//! async fn main() {
+//!     // Create mocks for dependencies
+//!     let user_mock = MockClient::<User>::new();
+//!     let product_mock = MockClient::<Product>::new();
+//!     
+//!     let user_client = UserClient::new(user_mock.client());
+//!     let product_client = ProductClient::new(product_mock.client());
 //!
-//! // Start with dependencies injected
-//! tokio::spawn(actor.run((user_client.clone(), product_client.clone())));
+//!     // Create actor and client
+//!     let (actor, client) = order_actor::new();
+//!
+//!     // Start with dependencies injected
+//!     tokio::spawn(actor.run((user_client, product_client)));
+//! }
 //! ```
 //!
 //! ## Lifecycle Hooks

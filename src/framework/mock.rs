@@ -2,6 +2,16 @@
 //!
 //! The `MockClient<T>` type implements the same `ResourceClient<T>` API as the production client but operates entirely in‑memory. It lets you set expectations and return values for unit tests, enabling fast, deterministic testing of client logic without spawning any actors.
 //!
+//! ## When to use Mocks vs Real Actors
+//!
+//! | Feature | MockClient | Real Actor |
+//! |---------|------------|------------|
+//! | **Speed** | Instant (in-memory) | Fast (but involves tokio spawn) |
+//! | **Determinism** | 100% Deterministic | Subject to scheduler |
+//! | **State** | No real state (expectations) | Real state management |
+//! | **Use Case** | Unit testing logic *around* the client | Testing the actor itself or full system |
+//! | **Error Injection** | Easy (`return_err`) | Hard (requires specific state) |
+//!
 //! ## Testing Strategies
 //!
 //! The actor framework supports four distinct testing patterns.
@@ -12,9 +22,13 @@
 //! **When to use**: Testing complex orchestration logic in your *Client* (e.g., [`OrderClient`](crate::clients::OrderClient)) without spinning up any actors.
 //!
 //! **Example**:
-//! ```rust,ignore
-//! #[tokio::test]
-//! async fn test_order_client_orchestration() {
+//! ```rust
+//! use actor_recipe::framework::mock::MockClient;
+//! use actor_recipe::clients::{UserClient, ActorClient};
+//! use actor_recipe::model::User;
+//!
+//! #[tokio::main]
+//! async fn main() {
 //!     // 1. Setup Mocks
 //!     let mut user_mock = MockClient::<User>::new();
 //!     user_mock.expect_get("user_1".to_string())
@@ -24,7 +38,8 @@
 //!     let user_client = UserClient::new(user_mock.client());
 //!     
 //!     // 3. Test Logic
-//!     // ...
+//!     let user = user_client.get("user_1".to_string()).await.unwrap();
+//!     assert_eq!(user.unwrap().email, "test@example.com");
 //! }
 //! ```
 //! </details>
@@ -35,13 +50,16 @@
 //! **When to use**: Testing a single actor's logic in isolation.
 //!
 //! **Example**:
-//! ```rust,ignore
-//! #[tokio::test]
-//! async fn test_product_stock_management() {
-//!     let (actor, client) = crate::product_actor::new();
+//! ```rust
+//! use actor_recipe::model::Product;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let (actor, client) = actor_recipe::product_actor::new();
 //!     tokio::spawn(actor.run(()));
 //!     
-//!     let id = client.create(product).await.unwrap();
+//!     let product = Product::new("", "Test Product", 10.0, 100);
+//!     let id = client.create_product(product).await.unwrap();
 //!     assert_eq!(client.check_stock(id).await.unwrap(), 100);
 //! }
 //! ```
@@ -53,17 +71,24 @@
 //! **When to use**: Testing an actor that depends on other actors, but you want to isolate the actor under test.
 //!
 //! **Example**:
-//! ```rust,ignore
-//! #[tokio::test]
-//! async fn test_order_actor_with_mocked_dependencies() {
-//!     let mut user_mock = MockClient::<User>::new();
-//!     // ... setup expectations ...
+//! ```rust
+//! use actor_recipe::framework::mock::MockClient;
+//! use actor_recipe::clients::{UserClient, ProductClient};
+//! use actor_recipe::model::{User, Product};
 //!
-//!     let (actor, client) = crate::order_actor::new(
+//! #[tokio::main]
+//! async fn main() {
+//!     let mut user_mock = MockClient::<User>::new();
+//!     let mut product_mock = MockClient::<Product>::new();
+//!
+//!     // Create the actor
+//!     let (actor, client) = actor_recipe::order_actor::new();
+//!
+//!     // Inject mocked dependencies into run()
+//!     tokio::spawn(actor.run((
 //!         UserClient::new(user_mock.client()),
-//!         // ...
-//!     );
-//!     // ...
+//!         ProductClient::new(product_mock.client())
+//!     )));
 //! }
 //! ```
 //! </details>
@@ -73,8 +98,32 @@
 //!
 //! **When to use**: Testing the entire system working together, end-to-end flows, concurrency.
 //!
-//! See `tests/integration_test.rs` for examples.
+//! See the `test_full_order_system_integration` function in `tests/integration_test.rs` for comprehensive examples.
 //! </details>
+//!
+//! ## Testing Failure Scenarios
+//!
+//! One of the biggest advantages of `MockClient` is the ability to simulate errors that are hard to reproduce with real actors (e.g., database timeouts, network partitions).
+//!
+//! ```rust
+//! use actor_recipe::framework::mock::MockClient;
+//! use actor_recipe::framework::FrameworkError;
+//! use actor_recipe::model::User;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let mut mock = MockClient::<User>::new();
+//!     let client = mock.client();
+//!
+//!     // Simulate a downstream failure
+//!     mock.expect_get("user_1".to_string())
+//!         .return_err(FrameworkError::ActorClosed);
+//!
+//!     // Verify your code handles it gracefully
+//!     let result = client.get("user_1".to_string()).await;
+//!     assert!(matches!(result, Err(FrameworkError::ActorClosed)));
+//! }
+//! ```
 //!
 //! ## Advanced: Test-Only Actions
 //!

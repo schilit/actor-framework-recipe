@@ -9,24 +9,29 @@
 //!
 //! ## Structure
 //!
-//! - [`entity`] - [`ActorEntity`](crate::framework::ActorEntity) implementation for [`User`](crate::model::User)
+//! - [`entity`] - [`ActorEntity`](crate::framework::ActorEntity) implementation for [`User`]
 //! - [`error`] - [`UserError`] type for type-safe error handling
 //! - [`new()`] - Factory function that creates the actor and client
 //!
 //! ## Usage
 //!
-//! ```rust,ignore
-//! use crate::user_actor;
+//! ```rust
+//! use actor_recipe::user_actor;
+//! use actor_recipe::model::User;
 //!
-//! // Create actor and client
-//! let (actor, client) = user_actor::new();
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Create actor and client
+//!     let (actor, client) = user_actor::new();
 //!
-//! // Start the actor (no dependencies, so context is ())
-//! tokio::spawn(actor.run(()));
+//!     // Start the actor (no dependencies, so context is ())
+//!     tokio::spawn(actor.run(()));
 //!
-//! // Use the client
-//! let user = UserCreate { name: "Alice".into(), email: "alice@example.com".into() };
-//! let id = client.create(user).await?;
+//!     // Use the client
+//!     let user = User::new("Alice", "alice@example.com");
+//!     let id = client.create_user(user).await?;
+//!     Ok(())
+//! }
 //! ```
 //!
 //! ## Key Features
