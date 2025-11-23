@@ -8,7 +8,7 @@ This recipe demonstrates how to build a robust actor system using Tokio, leverag
 
 ## 🏗 Architecture
 
-[View Architecture Dependency Graph](architecture.md)
+[View Architecture Dependency Graph](https://github.com/schilit/actor-framework-recipe/blob/main/architecture.md)
 
 The system is built on three core pillars: **Type Safety**, **Separation of Concerns**, and **Developer Experience**.
 
@@ -111,13 +111,13 @@ src/
 
 ## 📚 How-To Guide
 
-**New to the framework?** Check out the [**How-To Guide**](HOWTO.md) for step-by-step tutorials:
+**New to the framework?** Check out the [**How-To Guide**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md) for step-by-step tutorials:
 
-- [**How to Add a New Actor**](HOWTO.md#how-to-add-a-new-actor) - Walk through creating a `User` actor from scratch
-- [**How to Add Custom Actions**](HOWTO.md#how-to-add-a-custom-action) - Learn by example with `Product`'s stock management
-- [**How to Write Tests**](HOWTO.md#how-to-write-tests) - Master the mock framework with real examples
-- [**How to Handle Errors**](HOWTO.md#how-to-handle-errors) - Type-safe error handling patterns
-- [**Understanding Lifecycle Hooks**](HOWTO.md#understanding-lifecycle-hooks) - When to use `on_create` and `on_delete`
+- [**How to Add a New Actor**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md#how-to-add-a-new-actor) - Walk through creating a `User` actor from scratch
+- [**How to Add Custom Actions**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md#how-to-add-a-custom-action) - Learn by example with `Product`'s stock management
+- [**How to Write Tests**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md#how-to-write-tests) - Master the mock framework with real examples
+- [**How to Handle Errors**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md#how-to-handle-errors) - Type-safe error handling patterns
+- [**Understanding Lifecycle Hooks**](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md#understanding-lifecycle-hooks) - When to use `on_create` and `on_delete`
 
 ## 🛠 Usage
 
