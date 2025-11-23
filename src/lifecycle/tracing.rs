@@ -44,7 +44,11 @@
 //!
 //! When you run with `RUST_LOG=debug`, functions log full payloads **once** at the start:
 //!
-//! ```rust,ignore
+//! ```rust
+//! # use tracing::debug;
+//! # #[derive(Debug)]
+//! # struct Order { id: String }
+//! # let order = Order { id: "123".to_string() };
 //! debug!(?order, "create_order called");
 //! ```
 //!
