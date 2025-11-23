@@ -8,7 +8,7 @@ This recipe demonstrates how to build a robust actor system using Tokio, leverag
 
 ## 🏗 Architecture
 
-[View Architecture Dependency Graph](https://github.com/schilit/actor-framework-recipe/blob/main/architecture.md)
+[View Architecture Dependency Graph](./architecture.md)
 
 The system is built on three core pillars: **Type Safety**, **Separation of Concerns**, and **Developer Experience**.
 
