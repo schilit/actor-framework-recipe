@@ -27,7 +27,7 @@ use tracing::{debug, info, warn};
 /// must satisfy, we can write the `ResourceActor` logic *once* and reuse it everywhere.
 /// This is "Polymorphism" in action.
 ///
-/// We use "Associated Types" (type Id, type CreateParams, etc.) to enforce type safety.
+/// We use "Associated Types" (type Id, type Create, etc.) to enforce type safety.
 /// A `User` entity requires a `UserCreate` payload, and you can't accidentally send it
 /// a `ProductCreate` payload. The compiler prevents this class of bugs entirely.
 ///
@@ -56,10 +56,10 @@ pub trait ActorEntity: Clone + Send + Sync + 'static {
     type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
 
     /// The data required to create a new instance (DTO - Data Transfer Object).
-    type CreateParams: Send + Sync + Debug;
+    type Create: Send + Sync + Debug;
 
     /// The data required to update an existing instance.
-    type UpdateParams: Send + Sync + Debug;
+    type Update: Send + Sync + Debug;
 
     /// Enum representing resource-specific operations (e.g., `ReserveStock`).
     type Action: Send + Sync + Debug;
@@ -77,7 +77,7 @@ pub trait ActorEntity: Clone + Send + Sync + 'static {
 
     /// Construct the full Entity from the ID and Payload.
     /// This is called synchronously before `on_create`.
-    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, Self::Error>;
+    fn from_create_params(id: Self::Id, params: Self::Create) -> Result<Self, Self::Error>;
 
     // --- Lifecycle Hooks (Async) ---
 
@@ -90,7 +90,7 @@ pub trait ActorEntity: Clone + Send + Sync + 'static {
     /// Called when an update request is received.
     async fn on_update(
         &mut self,
-        update: Self::UpdateParams,
+        update: Self::Update,
         _ctx: &Self::Context,
     ) -> Result<(), Self::Error>;
 
@@ -144,20 +144,20 @@ pub type Response<T> = oneshot::Sender<Result<T, FrameworkError>>;
 /// The variants of this enum map directly to standard **CRUD** (Create, Read, Update, Delete) operations,
 /// plus a custom `Action` variant for resource-specific logic that doesn't fit the CRUD model.
 ///
-/// - **Create**: Lifecycle start. Uses [`ActorEntity::CreateParams`] to initialize a new resource.
+/// - **Create**: Lifecycle start. Uses [`ActorEntity::Create`] to initialize a new resource.
 /// - **Get (Read)**: Retrieval. Fetches the current state of the resource by ID.
-/// - **Update**: State mutation. Uses [`ActorEntity::UpdateParams`] to modify an existing resource.
+/// - **Update**: State mutation. Uses [`ActorEntity::Update`] to modify an existing resource.
 /// - **Delete**: Lifecycle end. Removes the resource.
 /// - **Action**: Extensibility. Executes a custom [`ActorEntity::Action`].
 ///
 /// # Entity Interaction
 /// This type is generic over `T: ActorEntity`. It uses the associated types defined in the [`ActorEntity`] trait
-/// (like `CreateParams`, `UpdateParams`, `Action`) to ensure type safety for every operation.
+/// (like `Create`, `Update`, `Action`) to ensure type safety for every operation.
 /// This guarantees that you can't send a "User Create" payload to a "Product" actor.
 #[derive(Debug)]
 pub enum ResourceRequest<T: ActorEntity> {
     Create {
-        params: T::CreateParams,
+        params: T::Create,
         respond_to: Response<T::Id>,
     },
     Get {
@@ -166,7 +166,7 @@ pub enum ResourceRequest<T: ActorEntity> {
     },
     Update {
         id: T::Id,
-        update: T::UpdateParams,
+        update: T::Update,
         respond_to: Response<T>,
     },
     #[allow(dead_code)]
@@ -340,7 +340,7 @@ impl<T: ActorEntity> ResourceClient<T> {
         Self { sender }
     }
 
-    pub async fn create(&self, params: T::CreateParams) -> Result<T::Id, FrameworkError> {
+    pub async fn create(&self, params: T::Create) -> Result<T::Id, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
         self.sender
             .send(ResourceRequest::Create { params, respond_to })
@@ -358,7 +358,7 @@ impl<T: ActorEntity> ResourceClient<T> {
         response.await.map_err(|_| FrameworkError::ActorDropped)?
     }
 
-    pub async fn update(&self, id: T::Id, update: T::UpdateParams) -> Result<T, FrameworkError> {
+    pub async fn update(&self, id: T::Id, update: T::Update) -> Result<T, FrameworkError> {
         let (respond_to, response) = oneshot::channel();
         self.sender
             .send(ResourceRequest::Update {
@@ -444,8 +444,8 @@ mod tests {
     #[async_trait]
     impl ActorEntity for SimpleUser {
         type Id = String;
-        type CreateParams = SimpleUserCreate;
-        type UpdateParams = SimpleUserUpdate;
+        type Create = SimpleUserCreate;
+        type Update = SimpleUserUpdate;
         type Action = UserAction;
         type ActionResult = bool;
         type Context = ();

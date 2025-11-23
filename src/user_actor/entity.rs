@@ -25,8 +25,8 @@ pub const ENTITY_IMPL_PRESENT: bool = true;
 #[async_trait]
 impl ActorEntity for User {
     type Id = String;
-    type CreateParams = UserCreate;
-    type UpdateParams = UserUpdate;
+    type Create = UserCreate;
+    type Update = UserUpdate;
     type Action = UserAction;
     type ActionResult = ();
     type Context = ();

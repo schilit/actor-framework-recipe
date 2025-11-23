@@ -21,8 +21,8 @@ pub const ENTITY_IMPL_PRESENT: bool = true;
 #[async_trait]
 impl ActorEntity for Product {
     type Id = String;
-    type CreateParams = ProductCreate;
-    type UpdateParams = ProductUpdate;
+    type Create = ProductCreate;
+    type Update = ProductUpdate;
     type Action = ProductAction;
     type ActionResult = ProductActionResult;
     type Context = ();

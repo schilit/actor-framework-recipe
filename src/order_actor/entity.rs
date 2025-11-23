@@ -20,8 +20,8 @@ pub const ENTITY_IMPL_PRESENT: bool = true;
 #[async_trait]
 impl ActorEntity for Order {
     type Id = String;
-    type CreateParams = OrderCreate;
-    type UpdateParams = (); // No updates for now
+    type Create = OrderCreate;
+    type Update = (); // No updates for now
     type Action = (); // No custom actions for now
     type ActionResult = ();
     type Context = (UserClient, ProductClient);
@@ -30,7 +30,7 @@ impl ActorEntity for Order {
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new Order from creation parameters.
-    fn from_create_params(id: Self::Id, params: Self::CreateParams) -> Result<Self, Self::Error> {
+    fn from_create_params(id: Self::Id, params: Self::Create) -> Result<Self, Self::Error> {
         Ok(Self::new(
             id,
             params.user_id,
@@ -70,7 +70,7 @@ impl ActorEntity for Order {
 
     async fn on_update(
         &mut self,
-        _update: Self::UpdateParams,
+        _update: Self::Update,
         _ctx: &Self::Context,
     ) -> Result<(), Self::Error> {
         Ok(())

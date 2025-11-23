@@ -71,8 +71,8 @@ use crate::user_actor::UserError;
 #[async_trait]
 impl ActorEntity for User {
     type Id = String;
-    type CreateParams = UserCreate;
-    type UpdateParams = UserUpdate;
+    type Create = UserCreate;
+    type Update = UserUpdate;
     type Action = ();           // No custom actions yet
     type ActionResult = ();
     type Context = ();          // No dependencies
@@ -761,8 +761,8 @@ use crate::user_actor::UserError;
 #[async_trait]
 impl ActorEntity for User {
     type Id = String;
-    type CreateParams = UserCreate;
-    type UpdateParams = UserUpdate;
+    type Create = UserCreate;
+    type Update = UserUpdate;
     type Error = UserError;  // ← Type-safe errors!
     // ... other types ...
 

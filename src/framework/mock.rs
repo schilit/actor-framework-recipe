@@ -62,8 +62,8 @@ pub struct MockClient<T: ActorEntity> {
 impl<T: ActorEntity + Send + 'static> Default for MockClient<T>
 where
     T::Id: Send,
-    T::CreateParams: Send,
-    T::UpdateParams: Send,
+    T::Create: Send,
+    T::Update: Send,
     T::Action: Send,
     T::ActionResult: Send,
 {
@@ -75,8 +75,8 @@ where
 impl<T: ActorEntity + Send + 'static> MockClient<T>
 where
     T::Id: Send,
-    T::CreateParams: Send,
-    T::UpdateParams: Send,
+    T::Create: Send,
+    T::Update: Send,
     T::Action: Send,
     T::ActionResult: Send,
 {
@@ -285,7 +285,7 @@ pub fn create_mock_client<T: ActorEntity>(
 pub async fn expect_create<T: ActorEntity>(
     receiver: &mut mpsc::Receiver<ResourceRequest<T>>,
 ) -> Option<(
-    T::CreateParams,
+    T::Create,
     tokio::sync::oneshot::Sender<Result<T::Id, FrameworkError>>,
 )> {
     match receiver.recv().await {
