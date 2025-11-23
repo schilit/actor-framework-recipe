@@ -78,15 +78,12 @@
 //!
 //! If you are new here, start with the **[How-To Guide](https://github.com/schilit/actor-framework-recipe/blob/main/HOWTO.md)**.
 //!
-//! ### Running the Demo
-//!
+//! Run the demo:
 //! ```bash
-//! # Run with info logs
 //! RUST_LOG=info cargo run
 //! ```
 //!
-//! ### Running Tests
-//!
+//! Run tests:
 //! ```bash
 //! cargo test
 //! ```
