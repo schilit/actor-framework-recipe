@@ -63,17 +63,22 @@ pub struct UserUpdate {
 Create `src/user_actor/entity.rs`:
 
 ```rust
+use async_trait::async_trait;
 use crate::framework::ActorEntity;
 use crate::model::{User, UserCreate, UserUpdate};
+use crate::user_actor::UserError;
 
+#[async_trait]
 impl ActorEntity for User {
     type Id = String;
     type CreateParams = UserCreate;
     type UpdateParams = UserUpdate;
     type Action = ();           // No custom actions yet
     type ActionResult = ();
+    type Context = ();          // No dependencies
+    type Error = UserError;     // Type-safe errors
 
-    fn from_create_params(id: String, params: UserCreate) -> Result<Self, String> {
+    fn from_create_params(id: String, params: UserCreate) -> Result<Self, Self::Error> {
         Ok(Self {
             id,
             name: params.name,
@@ -81,7 +86,7 @@ impl ActorEntity for User {
         })
     }
 
-    fn on_update(&mut self, update: UserUpdate) -> Result<(), String> {
+    async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context) -> Result<(), Self::Error> {
         if let Some(name) = update.name {
             self.name = name;
         }
@@ -91,16 +96,19 @@ impl ActorEntity for User {
         Ok(())
     }
 
-    fn handle_action(&mut self, _action: ()) -> Result<(), String> {
+    async fn handle_action(&mut self, _action: (), _ctx: &Self::Context) -> Result<(), Self::Error> {
         Ok(()) // No actions yet
     }
 }
 ```
 
 **Key Points**:
+- `#[async_trait]`: Required for async methods in traits
+- `type Context`: Dependencies injected at runtime (use `()` if none)
+- `type Error`: Your custom error type (enables type-safe error handling)
 - `from_create_params`: Constructs the entity from the DTO
-- `on_update`: Applies updates to the entity's fields
-- `handle_action`: Handles custom domain logic (we'll add this later)
+- `on_update`: Applies updates to the entity's fields (async)
+- `handle_action`: Handles custom domain logic (async)
 
 ### Step 3: Create a Domain-Specific Client
 
@@ -257,8 +265,9 @@ use super::actions::{ProductAction, ProductActionResult};
 impl ActorEntity for Product {
     type Action = ProductAction;
     type ActionResult = ProductActionResult;
+    type Error = ProductError;
 
-    fn handle_action(&mut self, action: ProductAction) -> Result<ProductActionResult, String> {
+    async fn handle_action(&mut self, action: ProductAction, _ctx: &Self::Context) -> Result<ProductActionResult, Self::Error> {
         match action {
             ProductAction::CheckStock => {
                 Ok(ProductActionResult::CheckStock(self.quantity))
@@ -268,10 +277,10 @@ impl ActorEntity for Product {
                     self.quantity -= quantity;
                     Ok(ProductActionResult::ReserveStock(()))
                 } else {
-                    Err(format!(
-                        "Insufficient stock: requested {}, available {}",
-                        quantity, self.quantity
-                    ))
+                    Err(ProductError::InsufficientStock { 
+                        requested: quantity, 
+                        available: self.quantity 
+                    })
                 }
             }
         }
@@ -332,7 +341,7 @@ impl ProductClient {
 
 The `ActorEntity` trait provides optional lifecycle hooks:
 
-### `on_create(&mut self) -> Result<(), Self::Error>`
+### `on_create(&mut self, ctx: &Self::Context) -> Result<(), Self::Error>`
 
 Called **after** the entity is created but **before** it's stored.
 
@@ -344,7 +353,7 @@ Called **after** the entity is created but **before** it's stored.
 **Example**:
 ```rust
 impl ActorEntity for User {
-    fn on_create(&mut self) -> Result<(), String> {
+    async fn on_create(&mut self, _ctx: &Self::Context) -> Result<(), Self::Error> {
         tracing::info!(user_id = %self.id, "User account created");
         // Could send to an event bus, audit log, etc.
         Ok(())
@@ -352,7 +361,7 @@ impl ActorEntity for User {
 }
 ```
 
-### `on_delete(&self) -> Result<(), Self::Error>`
+### `on_delete(&self, ctx: &Self::Context) -> Result<(), Self::Error>`
 
 Called **before** the entity is removed from the store.
 
@@ -364,15 +373,9 @@ Called **before** the entity is removed from the store.
 
 **Example**:
 ```rust
-impl ActorEntity for Product {
-    fn on_delete(&self) -> Result<(), String> {
-        if self.quantity > 0 {
-            return Err(format!(
-                "Cannot delete product {} with {} items in stock",
-                self.id, self.quantity
-            ));
-        }
-        tracing::warn!(product_id = %self.id, "Product deleted");
+impl ActorEntity for User {
+    async fn on_delete(&self, _ctx: &Self::Context) -> Result<(), Self::Error> {
+        tracing::warn!(user_id = %self.id, "User account deleted");
         Ok(())
     }
 }
