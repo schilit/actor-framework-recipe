@@ -1,6 +1,8 @@
 //! # Generic Actor Server
 //!
-//! This module defines the generic actor that manages entities.
+//! This module defines the `ResourceActor`, the core component that manages the lifecycle
+//! and state of entities. It implements the "Server" side of the Actor Model, processing
+//! messages sequentially and ensuring exclusive access to the entity store.
 
 use crate::client::ResourceClient;
 use crate::entity::ActorEntity;
@@ -29,6 +31,56 @@ use tracing::{debug, info, warn};
 /// * **Context injection** – a user‑provided `Context` is passed to every lifecycle hook, enabling dependency injection.
 /// * **Uniform API** – works with any entity that implements `ActorEntity`, providing a generic CRUD + Action implementation.
 ///
+/// # Usage Pattern
+///
+/// The canonical way to create and wire actors is:
+///
+/// 1.  **Create**: Call `ResourceActor::new()` to get the `actor` (server) and `client` (interface).
+/// 2.  **Wire**: Pass dependencies (other clients) into `actor.run(context)`.
+/// 3.  **Run**: Spawn the actor's run loop in a background task.
+///
+/// ```rust,ignore
+/// // 1. Create
+/// let (actor, client) = ResourceActor::new(10);
+///
+/// // 2. Wire & Run
+/// // The context (e.g., other clients) is passed here
+/// tokio::spawn(actor.run(my_context));
+/// ```
+///
+/// # Implementation Details
+///
+/// The actor maintains an internal `HashMap` (`store`) mapping IDs to entities and a `u32` counter (`next_id`) for ID generation.
+///
+/// ## Operations
+///
+/// * **Create**:
+///     1. Generates a new ID using the internal `next_id` counter (incrementing it).
+///     2. Converts the `u32` ID to `T::Id`.
+///     3. Calls `T::from_create_params` to instantiate the entity.
+///     4. Calls the `on_create` lifecycle hook.
+///     5. Inserts the new entity into the `store`.
+///     6. Returns the new ID.
+///
+/// * **Get**:
+///     1. Looks up the entity in the `store` by ID.
+///     2. Returns a clone of the entity if found, or `None`.
+///
+/// * **Update**:
+///     1. Looks up the entity in the `store` (mutable access).
+///     2. Calls the `on_update` lifecycle hook with the update DTO.
+///     3. The entity modifies its own state within the hook.
+///     4. Returns the updated entity state.
+///
+/// * **Delete**:
+///     1. Looks up the entity in the `store`.
+///     2. Calls the `on_delete` lifecycle hook.
+///     3. Removes the entity from the `store`.
+///
+/// * **Action**:
+///     1. Looks up the entity in the `store` (mutable access).
+///     2. Calls the `handle_action` hook with the custom action enum.
+///     3. Returns the result of the action.
 pub struct ResourceActor<T: ActorEntity> {
     receiver: mpsc::Receiver<ResourceRequest<T>>,
     store: HashMap<T::Id, T>,
@@ -36,6 +88,18 @@ pub struct ResourceActor<T: ActorEntity> {
 }
 
 impl<T: ActorEntity> ResourceActor<T> {
+    /// Creates a new `ResourceActor` and its associated `ResourceClient`.
+    ///
+    /// # Arguments
+    ///
+    /// * `buffer_size` - The capacity of the MPSC channel. If the channel is full,
+    ///   calls to the client will wait until there is space.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing:
+    /// 1. The `ResourceActor` instance (the server), which must be run via `.run()`.
+    /// 2. The `ResourceClient` instance, which can be cloned and shared to send requests.
     pub fn new(buffer_size: usize) -> (Self, ResourceClient<T>) {
         let (sender, receiver) = mpsc::channel(buffer_size);
         let actor = Self {
