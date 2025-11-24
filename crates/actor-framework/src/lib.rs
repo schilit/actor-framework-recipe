@@ -139,6 +139,7 @@
 
 pub mod actor;
 pub mod client;
+pub mod client_trait;
 pub mod entity;
 pub mod error;
 pub mod message;
@@ -148,6 +149,7 @@ pub mod tracing;
 // Re-export core types for convenience
 pub use actor::ResourceActor;
 pub use client::ResourceClient;
+pub use client_trait::ActorClient;
 pub use entity::ActorEntity;
 pub use error::FrameworkError;
 pub use message::{ResourceRequest, Response};

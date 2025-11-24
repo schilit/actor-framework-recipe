@@ -2,9 +2,9 @@
 //!
 //! Provides a high‑level API for interacting with the `Order` actor.
 //! It wraps a `ResourceClient<Order>` and handles orchestration logic.
-use crate::clients::actor_client::ActorClient;
 use crate::model::Order;
 use crate::order_actor::OrderError;
+use actor_framework::ActorClient;
 use actor_framework::{FrameworkError, ResourceClient};
 use async_trait::async_trait;
 use tracing::{debug, info, instrument};

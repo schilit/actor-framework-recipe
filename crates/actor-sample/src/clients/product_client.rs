@@ -2,9 +2,9 @@
 //!
 //! Provides a high‑level API for interacting with the `Product` actor.
 //! It wraps a `ResourceClient<Product>` and exposes domain‑specific methods.
-use crate::clients::actor_client::ActorClient;
 use crate::model::Product;
 use crate::product_actor::ProductError;
+use actor_framework::ActorClient;
 use actor_framework::{FrameworkError, ResourceClient};
 use async_trait::async_trait;
 use tracing::{debug, instrument};

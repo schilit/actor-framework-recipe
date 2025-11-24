@@ -1,4 +1,4 @@
-use actor_sample::clients::actor_client::ActorClient;
+use actor_framework::ActorClient;
 use actor_sample::lifecycle::OrderSystem;
 use actor_sample::model::{Order, OrderCreate, Product, ProductCreate, User, UserCreate};
 

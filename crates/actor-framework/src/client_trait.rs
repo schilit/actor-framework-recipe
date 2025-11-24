@@ -1,7 +1,7 @@
 //! # ActorClient Trait
 //!
 //! Provides a common interface for resource‑specific clients, adding default `get` and `delete` methods built on top of a generic `ResourceClient`.
-use actor_framework::{ActorEntity, FrameworkError, ResourceClient};
+use crate::{ActorEntity, FrameworkError, ResourceClient};
 use async_trait::async_trait;
 
 /// Trait for resource-specific clients to inherit standard CRUD operations.

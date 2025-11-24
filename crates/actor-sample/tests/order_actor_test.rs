@@ -1,5 +1,6 @@
 use actor_framework::mock::MockClient;
-use actor_sample::clients::{actor_client::ActorClient, ProductClient, UserClient};
+use actor_framework::ActorClient;
+use actor_sample::clients::{ProductClient, UserClient};
 use actor_sample::model::{Order, OrderCreate, Product, User};
 use actor_sample::product_actor::ProductActionResult;
 

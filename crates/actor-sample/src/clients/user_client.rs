@@ -2,9 +2,9 @@
 //!
 //! Provides a high‑level API for interacting with the `User` actor.
 //! It wraps a `ResourceClient<User>` and exposes domain‑specific methods.
-use crate::clients::actor_client::ActorClient;
 use crate::model::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
+use actor_framework::ActorClient;
 use actor_framework::{FrameworkError, ResourceClient};
 use async_trait::async_trait;
 use tracing::{debug, instrument};

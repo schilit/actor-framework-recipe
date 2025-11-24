@@ -135,12 +135,10 @@
 //! 4. **Maintainability** - Domain logic lives in one place
 //! 5. **Discoverability** - IDE autocomplete shows domain methods
 
-pub mod actor_client;
 pub mod order_client;
 pub mod product_client;
 pub mod user_client;
 
-pub use actor_client::*;
 pub use order_client::*;
 pub use product_client::*;
 pub use user_client::*;
