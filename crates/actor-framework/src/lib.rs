@@ -53,49 +53,69 @@
 //!
 //! Define what your actor manages and how it behaves:
 //!
-//! ```rust,ignore
+//! ### [`ActorEntity`] - The Business Logic
+//!
+//! Define what your actor manages and how it behaves:
+//!
+//! ```rust
+//! use actor_framework::{ActorEntity, ResourceActor, ResourceClient};
+//! use async_trait::async_trait;
+//!
+//! // 1. Define the Entity
+//! #[derive(Clone, Debug)]
+//! struct User {
+//!     id: u32,
+//!     name: String,
+//! }
+//!
+//! #[derive(Debug)] struct UserCreate { name: String }
+//! #[derive(Debug)] struct UserUpdate { name: Option<String> }
+//! #[derive(Debug)] enum UserAction {}
+//! #[derive(Debug)] struct UserError(String);
+//!
+//! impl std::fmt::Display for UserError {
+//!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.0) }
+//! }
+//! impl std::error::Error for UserError {}
+//!
 //! #[async_trait]
 //! impl ActorEntity for User {
-//!     type Id = String;
+//!     type Id = u32;
 //!     type Create = UserCreate;
 //!     type Update = UserUpdate;
-//!     type Action = ();
+//!     type Action = UserAction;
 //!     type ActionResult = ();
 //!     type Context = ();
 //!     type Error = UserError;
 //!
-//!     fn from_create_params(id: String, params: UserCreate) -> Result<Self, Self::Error> {
-//!         Ok(Self { id, name: params.name, email: params.email })
+//!     fn from_create_params(id: u32, params: UserCreate) -> Result<Self, Self::Error> {
+//!         Ok(Self { id, name: params.name })
 //!     }
 //!
-//!     async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context)
-//!         -> Result<(), Self::Error>
-//!     {
+//!     async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context) -> Result<(), Self::Error> {
 //!         if let Some(name) = update.name { self.name = name; }
 //!         Ok(())
 //!     }
+//!
+//!     async fn handle_action(&mut self, _: UserAction, _: &Self::Context) -> Result<(), Self::Error> {
+//!         Ok(())
+//!     }
 //! }
-//! ```
 //!
-//! ### [`ResourceActor`] - The Runtime
+//! // 2. Use the Actor
+//! #[tokio::main]
+//! async fn main() {
+//!     // Create actor and client
+//!     let (actor, client) = ResourceActor::<User>::new(10);
 //!
-//! A generic actor that manages any `T: ActorEntity`. You never need to write message loops
-//! or handle channels manually:
+//!     // Spawn the actor
+//!     tokio::spawn(actor.run(()));
 //!
-//! ```rust,ignore
-//! let (actor, client) = ResourceActor::new(100, || format!("user_{}", Uuid::new_v4()));
-//! tokio::spawn(actor.run(()));  // Context injection happens here
-//! ```
-//!
-//! ### [`ResourceClient`] - The Interface
-//!
-//! Type-safe communication with actors. All methods are async and return `Result`:
-//!
-//! ```rust,ignore
-//! let id = client.create(user_params).await?;
-//! let user = client.get(id.clone()).await?;
-//! client.update(id.clone(), update).await?;
-//! client.delete(id).await?;
+//!     // Use the client
+//!     let id = client.create(UserCreate { name: "Alice".into() }).await.unwrap();
+//!     let user = client.get(id).await.unwrap().unwrap();
+//!     assert_eq!(user.name, "Alice");
+//! }
 //! ```
 //!
 //! ## Context Injection Pattern

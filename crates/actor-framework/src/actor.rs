@@ -39,13 +39,49 @@ use tracing::{debug, info, warn};
 /// 2.  **Wire**: Pass dependencies (other clients) into `actor.run(context)`.
 /// 3.  **Run**: Spawn the actor's run loop in a background task.
 ///
-/// ```rust,ignore
-/// // 1. Create
-/// let (actor, client) = ResourceActor::new(10);
+/// ```rust
+/// use actor_framework::{ActorEntity, ResourceActor};
+/// use async_trait::async_trait;
 ///
-/// // 2. Wire & Run
-/// // The context (e.g., other clients) is passed here
-/// tokio::spawn(actor.run(my_context));
+/// // Minimal Entity Definition
+/// #[derive(Clone, Debug)] struct MyEntity { id: u32 }
+/// #[derive(Debug)] struct MyCreate;
+/// #[derive(Debug)] struct MyUpdate;
+/// #[derive(Debug)] enum MyAction {}
+/// #[derive(Debug)] struct MyError(String);
+///
+/// impl std::fmt::Display for MyError {
+///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.0) }
+/// }
+/// impl std::error::Error for MyError {}
+/// impl From<String> for MyError { fn from(s: String) -> Self { MyError(s) } }
+///
+/// #[async_trait]
+/// impl ActorEntity for MyEntity {
+///     type Id = u32;
+///     type Create = MyCreate;
+///     type Update = MyUpdate;
+///     type Action = MyAction;
+///     type ActionResult = ();
+///     type Context = (); // No dependencies in this example
+///     type Error = MyError;
+///
+///     fn from_create_params(id: u32, _: MyCreate) -> Result<Self, Self::Error> { Ok(Self { id }) }
+///     async fn on_update(&mut self, _: MyUpdate, _: &()) -> Result<(), Self::Error> { Ok(()) }
+///     async fn handle_action(&mut self, _: MyAction, _: &()) -> Result<(), Self::Error> { Ok(()) }
+/// }
+///
+/// #[tokio::main]
+/// async fn main() {
+///     // 1. Create
+///     let (actor, client) = ResourceActor::<MyEntity>::new(10);
+///
+///     // 2. Wire & Run
+///     tokio::spawn(actor.run(()));
+///
+///     // 3. Use
+///     let _ = client.create(MyCreate).await;
+/// }
 /// ```
 ///
 /// # Implementation Details
