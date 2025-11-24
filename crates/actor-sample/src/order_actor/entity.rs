@@ -6,7 +6,7 @@
 //! See the trait implementation on [`Order`] for method documentation.
 
 use crate::clients::{ProductClient, UserClient};
-use crate::model::{Order, OrderCreate};
+use crate::model::{Order, OrderCreate, OrderId};
 use crate::order_actor::OrderError;
 use actor_framework::{ActorClient, ActorEntity};
 use async_trait::async_trait;
@@ -19,7 +19,7 @@ pub const ENTITY_IMPL_PRESENT: bool = true;
 
 #[async_trait]
 impl ActorEntity for Order {
-    type Id = String;
+    type Id = OrderId;
     type Create = OrderCreate;
     type Update = (); // No updates for now
     type Action = (); // No custom actions for now
@@ -49,7 +49,7 @@ impl ActorEntity for Order {
         let user = user_client.get(self.user_id.clone()).await?;
 
         if user.is_none() {
-            return Err(OrderError::InvalidUser(self.user_id.clone()));
+            return Err(OrderError::InvalidUser(self.user_id.to_string()));
         }
 
         // 2. Reserve Stock - errors automatically convert via #[from]

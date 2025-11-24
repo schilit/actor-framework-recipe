@@ -10,10 +10,28 @@
 /// - Custom actions ([`ProductAction`](crate::product_actor::actions::ProductAction))
 use serde::{Deserialize, Serialize};
 
+use std::fmt::Display;
+
+/// Type-safe identifier for Products.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ProductId(pub u32);
+
+impl From<u32> for ProductId {
+    fn from(id: u32) -> Self {
+        Self(id)
+    }
+}
+
+impl Display for ProductId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "product_{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Product {
     #[allow(dead_code)]
-    pub id: String,
+    pub id: ProductId,
     pub name: String,
     pub price: f64,
     pub quantity: u32,
@@ -27,9 +45,9 @@ impl Product {
     /// * `name` - Product name
     /// * `price` - Product price
     /// * `quantity` - Available stock quantity
-    pub fn new(id: impl Into<String>, name: impl Into<String>, price: f64, quantity: u32) -> Self {
+    pub fn new(id: ProductId, name: impl Into<String>, price: f64, quantity: u32) -> Self {
         Self {
-            id: id.into(),
+            id,
             name: name.into(),
             price,
             quantity,

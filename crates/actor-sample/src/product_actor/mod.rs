@@ -30,12 +30,14 @@
 //!
 //! ```rust
 //! use actor_sample::product_actor;
+//! use actor_sample::clients::ProductClient;
 //! use actor_sample::model::ProductCreate;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Create actor and client
-//!     let (actor, client) = product_actor::new();
+//!     let (actor, generic_client) = product_actor::new();
+//!     let client = ProductClient::new(generic_client);
 //!
 //!     // Start the actor (no dependencies)
 //!     tokio::spawn(actor.run(()));
@@ -67,7 +69,7 @@ pub mod error;
 pub use actions::*;
 pub use error::*;
 
-use crate::clients::ProductClient;
+
 use crate::model::Product;
 use actor_framework::{ResourceActor, ResourceClient};
 

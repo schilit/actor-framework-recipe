@@ -6,12 +6,32 @@
 ///
 /// See [`impl ActorEntity for Order`](#impl-ActorEntity-for-Order) for details on:
 /// - Creation parameters ([`OrderCreate`])
+use crate::model::{ProductId, UserId};
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+
+/// Type-safe identifier for Orders.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct OrderId(pub u32);
+
+impl From<u32> for OrderId {
+    fn from(id: u32) -> Self {
+        Self(id)
+    }
+}
+
+impl Display for OrderId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "order_{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Order {
     #[allow(dead_code)]
-    pub id: String,
-    pub user_id: String,
-    pub product_id: String,
+    pub id: OrderId,
+    pub user_id: UserId,
+    pub product_id: ProductId,
     pub quantity: u32,
     pub total: f64,
     #[allow(dead_code)]
@@ -19,10 +39,10 @@ pub struct Order {
 }
 
 /// Payload for creating a new order.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OrderCreate {
-    pub user_id: String,
-    pub product_id: String,
+    pub user_id: UserId,
+    pub product_id: ProductId,
     pub quantity: u32,
     pub total: f64,
 }
@@ -41,16 +61,16 @@ impl Order {
     /// The order is initialized with status "Created".
     /// This constructor is kept for backward compatibility.
     pub fn new(
-        id: impl Into<String>,
-        user_id: impl Into<String>,
-        product_id: impl Into<String>,
+        id: OrderId,
+        user_id: UserId,
+        product_id: ProductId,
         quantity: u32,
         total: f64,
     ) -> Self {
         Self {
-            id: id.into(),
-            user_id: user_id.into(),
-            product_id: product_id.into(),
+            id,
+            user_id,
+            product_id,
             quantity,
             total,
             status: "Created".to_string(),

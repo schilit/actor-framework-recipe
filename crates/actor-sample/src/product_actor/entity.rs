@@ -7,7 +7,7 @@
 //!
 //! See the trait implementation on [`Product`] for method documentation.
 
-use crate::model::{Product, ProductCreate, ProductUpdate};
+use crate::model::{Product, ProductCreate, ProductId, ProductUpdate};
 use crate::product_actor::{ProductAction, ProductActionResult, ProductError};
 use actor_framework::ActorEntity;
 use async_trait::async_trait;
@@ -20,7 +20,7 @@ pub const ENTITY_IMPL_PRESENT: bool = true;
 
 #[async_trait]
 impl ActorEntity for Product {
-    type Id = String;
+    type Id = ProductId;
     type Create = ProductCreate;
     type Update = ProductUpdate;
     type Action = ProductAction;
@@ -31,7 +31,7 @@ impl ActorEntity for Product {
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new Product from creation parameters.
-    fn from_create_params(id: String, params: ProductCreate) -> Result<Self, Self::Error> {
+    fn from_create_params(id: ProductId, params: ProductCreate) -> Result<Self, Self::Error> {
         Ok(Product::new(id, params.name, params.price, params.quantity))
     }
 

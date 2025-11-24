@@ -29,7 +29,7 @@
 //!
 //! // --- Define a minimal Entity for the test ---
 //! #[derive(Clone, Debug, PartialEq)]
-//! struct User { id: String, email: String }
+//! struct User { id: u32, email: String }
 //! #[derive(Debug)] struct UserCreate { email: String }
 //! #[derive(Debug)] struct UserUpdate;
 //! #[derive(Debug)] enum UserAction {}
@@ -37,9 +37,9 @@
 //!
 //! #[async_trait]
 //! impl ActorEntity for User {
-//!     type Id = String; type Create = UserCreate; type Update = UserUpdate;
+//!     type Id = u32; type Create = UserCreate; type Update = UserUpdate;
 //!     type Action = UserAction; type ActionResult = (); type Context = (); type Error = UserError;
-//!     fn from_create_params(id: String, params: UserCreate) -> Result<Self, Self::Error> {
+//!     fn from_create_params(id: u32, params: UserCreate) -> Result<Self, Self::Error> {
 //!         Ok(Self { id, email: params.email })
 //!     }
 //!     async fn on_update(&mut self, _: UserUpdate, _: &()) -> Result<(), Self::Error> { Ok(()) }
@@ -50,27 +50,27 @@
 //! struct UserClient { client: ResourceClient<User> }
 //! impl UserClient {
 //!     fn new(client: ResourceClient<User>) -> Self { Self { client } }
-//!     async fn get(&self, id: String) -> Result<Option<User>, UserError> {
+//!     async fn get(&self, id: u32) -> Result<Option<User>, UserError> {
 //!         self.client.get(id).await.map_err(|_| UserError)
 //!     }
 //! }
 //!
 //! impl User {
-//!     fn new(id: &str, email: &str) -> Self { Self { id: id.to_string(), email: email.to_string() } }
+//!     fn new(id: u32, email: &str) -> Self { Self { id, email: email.to_string() } }
 //! }
 //!
 //! #[tokio::main]
 //! async fn main() {
 //!     // 1. Setup Mocks
 //!     let mut user_mock = MockClient::<User>::new();
-//!     user_mock.expect_get("user_1".to_string())
-//!         .return_ok(Some(User::new("user_1", "test@example.com")));
+//!     user_mock.expect_get(1)
+//!         .return_ok(Some(User::new(1, "test@example.com")));
 //!
 //!     // 2. Create Client with Mocks
 //!     let user_client = UserClient::new(user_mock.client());
 //!     
 //!     // 3. Test Logic
-//!     let user = user_client.get("user_1".to_string()).await.unwrap();
+//!     let user = user_client.get(1).await.unwrap();
 //!     assert_eq!(user.unwrap().email, "test@example.com");
 //! }
 //! ```
@@ -85,11 +85,9 @@
 //! ```rust
 //! use actor_framework::{ActorEntity, ResourceActor, ResourceClient};
 //! use async_trait::async_trait;
-//! use std::sync::atomic::{AtomicU64, Ordering};
-//! use std::sync::Arc;
 //!
 //! // --- Define Entity ---
-//! #[derive(Clone, Debug)] struct Product { id: String, stock: u32 }
+//! #[derive(Clone, Debug)] struct Product { id: u32, stock: u32 }
 //! #[derive(Debug)] struct ProductCreate { stock: u32 }
 //! #[derive(Debug)] struct ProductUpdate;
 //! #[derive(Debug)] enum ProductAction { CheckStock }
@@ -97,9 +95,9 @@
 //!
 //! #[async_trait]
 //! impl ActorEntity for Product {
-//!     type Id = String; type Create = ProductCreate; type Update = ProductUpdate;
+//!     type Id = u32; type Create = ProductCreate; type Update = ProductUpdate;
 //!     type Action = ProductAction; type ActionResult = u32; type Context = (); type Error = ProductError;
-//!     fn from_create_params(id: String, params: ProductCreate) -> Result<Self, Self::Error> {
+//!     fn from_create_params(id: u32, params: ProductCreate) -> Result<Self, Self::Error> {
 //!         Ok(Self { id, stock: params.stock })
 //!     }
 //!     async fn on_update(&mut self, _: ProductUpdate, _: &()) -> Result<(), Self::Error> { Ok(()) }
@@ -110,9 +108,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let counter = Arc::new(AtomicU64::new(1));
-//!     let next_id = move || format!("prod_{}", counter.fetch_add(1, Ordering::SeqCst));
-//!     let (actor, client) = ResourceActor::<Product>::new(10, next_id);
+//!     let (actor, client) = ResourceActor::<Product>::new(10);
 //!     tokio::spawn(actor.run(()));
 //!     
 //!     let params = ProductCreate { stock: 100 };
@@ -152,7 +148,7 @@
 //! use actor_framework::{ActorEntity, FrameworkError};
 //! use async_trait::async_trait;
 //!
-//! #[derive(Clone, Debug)] struct User { id: String }
+//! #[derive(Clone, Debug)] struct User { id: u32 }
 //! #[derive(Debug)] struct UserCreate;
 //! #[derive(Debug)] struct UserUpdate;
 //! #[derive(Debug)] enum UserAction {}
@@ -160,9 +156,9 @@
 //!
 //! #[async_trait]
 //! impl ActorEntity for User {
-//!     type Id = String; type Create = UserCreate; type Update = UserUpdate;
+//!     type Id = u32; type Create = UserCreate; type Update = UserUpdate;
 //!     type Action = UserAction; type ActionResult = (); type Context = (); type Error = UserError;
-//!     fn from_create_params(id: String, _: UserCreate) -> Result<Self, Self::Error> { Ok(Self { id }) }
+//!     fn from_create_params(id: u32, _: UserCreate) -> Result<Self, Self::Error> { Ok(Self { id }) }
 //!     async fn on_update(&mut self, _: UserUpdate, _: &()) -> Result<(), Self::Error> { Ok(()) }
 //!     async fn handle_action(&mut self, _: UserAction, _: &()) -> Result<(), Self::Error> { Ok(()) }
 //! }
@@ -173,11 +169,11 @@
 //!     let client = mock.client();
 //!
 //!     // Simulate a downstream failure
-//!     mock.expect_get("user_1".to_string())
+//!     mock.expect_get(1)
 //!         .return_err(FrameworkError::ActorClosed);
 //!
 //!     // Verify your code handles it gracefully
-//!     let result = client.get("user_1".to_string()).await;
+//!     let result = client.get(1).await;
 //!     assert!(matches!(result, Err(FrameworkError::ActorClosed)));
 //! }
 //! ```
@@ -540,7 +536,8 @@ mod tests {
 
     #[derive(Clone, Debug, PartialEq)]
     struct User {
-        id: String,
+        id: u32,
+        name: String,
         email: String,
     }
 
@@ -562,7 +559,7 @@ mod tests {
 
     #[async_trait]
     impl ActorEntity for User {
-        type Id = String;
+        type Id = u32;
         type Create = UserCreate;
         type Update = UserUpdate;
         type Action = UserAction;
@@ -570,13 +567,13 @@ mod tests {
         type Context = ();
         type Error = UserError;
 
-        fn from_create_params(id: String, params: UserCreate) -> Result<Self, Self::Error> {
+        fn from_create_params(id: u32, params: UserCreate) -> Result<Self, Self::Error> {
             Ok(Self {
                 id,
+                name: params.name,
                 email: params.email,
             })
         }
-
         async fn on_update(
             &mut self,
             _update: UserUpdate,
@@ -595,9 +592,10 @@ mod tests {
     }
 
     impl User {
-        fn new(id: &str, email: &str) -> Self {
+        fn new(id: u32, email: &str) -> Self {
             Self {
-                id: id.to_string(),
+                id,
+                name: "Test User".to_string(),
                 email: email.to_string(),
             }
         }
@@ -620,10 +618,10 @@ mod tests {
             .await
             .expect("Expected Create request");
         assert_eq!(payload.name, "Test");
-        responder.send(Ok("user_1".to_string())).unwrap();
+        responder.send(Ok(1)).unwrap();
 
         let result = create_task.await.unwrap();
-        assert!(matches!(result, Ok(id) if id == "user_1"));
+        assert!(matches!(result, Ok(id) if id == 1));
     }
 
     #[tokio::test]
@@ -632,9 +630,9 @@ mod tests {
         let mut mock = MockClient::<User>::new();
 
         // Set up expectations
-        mock.expect_create().return_ok("user_1".to_string());
-        mock.expect_get("user_1".to_string())
-            .return_ok(Some(User::new("user_1", "test@example.com")));
+        mock.expect_create().return_ok(1);
+        mock.expect_get(1)
+            .return_ok(Some(User::new(1, "test@example.com")));
 
         let client = mock.client();
 
@@ -644,9 +642,9 @@ mod tests {
             email: "test@example.com".to_string(),
         };
         let id = client.create(user).await.unwrap();
-        assert_eq!(id, "user_1");
+        assert_eq!(id, 1);
 
-        let fetched = client.get("user_1".to_string()).await.unwrap();
+        let fetched = client.get(1).await.unwrap();
         assert!(fetched.is_some());
         assert_eq!(fetched.unwrap().email, "test@example.com");
 

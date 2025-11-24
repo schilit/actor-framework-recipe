@@ -9,9 +9,27 @@ use serde::{Deserialize, Serialize};
 /// See [`impl ActorEntity for User`](#impl-ActorEntity-for-User) for details on:
 /// - Creation parameters ([`UserCreate`])
 /// - Update parameters ([`UserUpdate`])
+use std::fmt::Display;
+
+/// Type-safe identifier for Users.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct UserId(pub u32);
+
+impl From<u32> for UserId {
+    fn from(id: u32) -> Self {
+        Self(id)
+    }
+}
+
+impl Display for UserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "user_{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct User {
-    pub id: String,
+    pub id: UserId,
     pub name: String,
     pub email: String,
 }
@@ -42,7 +60,7 @@ impl User {
     /// The `id` field is initialized as an empty string and will be set by the actor system.
     pub fn new(name: impl Into<String>, email: impl Into<String>) -> Self {
         Self {
-            id: String::new(),
+            id: UserId(0),
             name: name.into(),
             email: email.into(),
         }

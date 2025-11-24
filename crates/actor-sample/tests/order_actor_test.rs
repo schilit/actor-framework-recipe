@@ -1,7 +1,7 @@
 use actor_framework::mock::MockClient;
 use actor_framework::ActorClient;
-use actor_sample::clients::{ProductClient, UserClient};
-use actor_sample::model::{Order, OrderCreate, Product, User};
+use actor_sample::clients::{OrderClient, ProductClient, UserClient};
+use actor_sample::model::{Order, OrderCreate, Product, ProductId, User, UserId};
 use actor_sample::product_actor::ProductActionResult;
 
 /// Integration test: Real Order actor with mocked User and Product dependencies.
@@ -19,12 +19,12 @@ async fn test_order_actor_with_mocked_dependencies() {
     // Define expectations for the dependencies
     // Order::on_create will call user_client.get() and product_client.reserve_stock()
     user_mock
-        .expect_get("user_1".to_string())
-        .return_ok(Some(User::new("user_1", "alice@example.com")));
+        .expect_get(UserId(1))
+        .return_ok(Some(User::new("Alice", "alice@example.com")));
 
     // reserve_stock() internally calls perform_action()
     product_mock
-        .expect_action("product_1".to_string())
+        .expect_action(ProductId(1))
         .return_ok(ProductActionResult::ReserveStock(()));
 
     // Create clients from mocks
@@ -32,7 +32,8 @@ async fn test_order_actor_with_mocked_dependencies() {
     let product_client = ProductClient::new(product_mock.client());
 
     // Create REAL Order actor using factory function (no dependencies)
-    let (order_actor, order_client) = actor_sample::order_actor::new();
+    let (order_actor, order_generic_client) = actor_sample::order_actor::new();
+    let order_client = OrderClient::new(order_generic_client);
 
     // Spawn the real actor with injected context
     let actor_handle = tokio::spawn(order_actor.run((user_client.clone(), product_client.clone())));
@@ -40,8 +41,8 @@ async fn test_order_actor_with_mocked_dependencies() {
     // Execute: This will run through the REAL Order actor
     // The validation happens in Order::on_create
     let order_params = OrderCreate {
-        user_id: "user_1".to_string(),
-        product_id: "product_1".to_string(),
+        user_id: UserId(1),
+        product_id: ProductId(1),
         quantity: 3,
         total: 75.0,
     };
@@ -55,8 +56,8 @@ async fn test_order_actor_with_mocked_dependencies() {
     let retrieved_order = order_client.get(order_id.clone()).await.unwrap();
     assert!(retrieved_order.is_some());
     let order = retrieved_order.unwrap();
-    assert_eq!(order.user_id, "user_1");
-    assert_eq!(order.product_id, "product_1");
+    assert_eq!(order.user_id, UserId(1));
+    assert_eq!(order.product_id, ProductId(1));
     assert_eq!(order.quantity, 3);
 
     // Verify mocks were called correctly (by Order::on_create)

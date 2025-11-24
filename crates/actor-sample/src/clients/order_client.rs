@@ -2,7 +2,7 @@
 //!
 //! Provides a high‑level API for interacting with the `Order` actor.
 //! It wraps a `ResourceClient<Order>` and handles orchestration logic.
-use crate::model::Order;
+use crate::model::{Order, OrderId};
 use crate::order_actor::OrderError;
 use actor_framework::ActorClient;
 use actor_framework::{FrameworkError, ResourceClient};
@@ -27,7 +27,7 @@ impl OrderClient {
     pub async fn create_order(
         &self,
         params: crate::model::OrderCreate,
-    ) -> Result<String, OrderError> {
+    ) -> Result<OrderId, OrderError> {
         debug!("create_order called");
         info!("Sending create_order to actor");
 

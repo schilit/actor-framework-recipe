@@ -2,7 +2,7 @@
 //!
 //! Provides a high‑level API for interacting with the `Product` actor.
 //! It wraps a `ResourceClient<Product>` and exposes domain‑specific methods.
-use crate::model::Product;
+use crate::model::{Product, ProductId};
 use crate::product_actor::ProductError;
 use actor_framework::ActorClient;
 use actor_framework::{FrameworkError, ResourceClient};
@@ -41,7 +41,7 @@ impl ProductClient {
     pub async fn create_product(
         &self,
         params: crate::model::ProductCreate,
-    ) -> Result<String, ProductError> {
+    ) -> Result<ProductId, ProductError> {
         debug!("Sending request");
         self.inner
             .create(params)
@@ -54,7 +54,7 @@ impl ProductClient {
     /// Returns the quantity available.
     #[instrument(skip(self))]
     #[allow(dead_code)]
-    pub async fn check_stock(&self, id: String) -> Result<u32, ProductError> {
+    pub async fn check_stock(&self, id: ProductId) -> Result<u32, ProductError> {
         debug!("Checking stock for product {}", id);
         use crate::product_actor::{ProductAction, ProductActionResult};
         match self
@@ -72,7 +72,7 @@ impl ProductClient {
     ///
     /// Returns `Ok(())` if successful, or an error if insufficient stock.
     #[instrument(skip(self))]
-    pub async fn reserve_stock(&self, id: String, quantity: u32) -> Result<(), ProductError> {
+    pub async fn reserve_stock(&self, id: ProductId, quantity: u32) -> Result<(), ProductError> {
         debug!("Reserving {} units for product {}", quantity, id);
         use crate::product_actor::{ProductAction, ProductActionResult};
         match self
@@ -100,14 +100,14 @@ mod tests {
 
         // Spawn task to call check_stock
         let check_task =
-            tokio::spawn(async move { product_client.check_stock("product_1".to_string()).await });
+            tokio::spawn(async move { product_client.check_stock(ProductId(1)).await });
 
         // Expect the action request
         let (id, action, responder) = expect_action(&mut receiver)
             .await
             .expect("Expected Action request");
 
-        assert_eq!(id, "product_1");
+        assert_eq!(id, ProductId(1));
         assert!(matches!(action, ProductAction::CheckStock));
 
         // Respond with stock level
@@ -128,7 +128,7 @@ mod tests {
         // Spawn task to call reserve_stock
         let reserve_task = tokio::spawn(async move {
             product_client
-                .reserve_stock("product_1".to_string(), 5)
+                .reserve_stock(ProductId(1), 5)
                 .await
         });
 
@@ -137,7 +137,7 @@ mod tests {
             .await
             .expect("Expected Action request");
 
-        assert_eq!(id, "product_1");
+        assert_eq!(id, ProductId(1));
         match action {
             ProductAction::ReserveStock(amount) => assert_eq!(amount, 5),
             _ => panic!("Expected ReserveStock action"),
@@ -161,7 +161,7 @@ mod tests {
         // Spawn task to call reserve_stock
         let reserve_task = tokio::spawn(async move {
             product_client
-                .reserve_stock("product_1".to_string(), 100)
+                .reserve_stock(ProductId(1), 100)
                 .await
         });
 
@@ -170,7 +170,7 @@ mod tests {
             .await
             .expect("Expected Action request");
 
-        assert_eq!(id, "product_1");
+        assert_eq!(id, ProductId(1));
         match action {
             ProductAction::ReserveStock(amount) => assert_eq!(amount, 100),
             _ => panic!("Expected ReserveStock action"),

@@ -99,7 +99,7 @@ pub mod error;
 
 pub use error::*;
 
-use crate::clients::OrderClient;
+
 use crate::model::Order;
 use actor_framework::{ResourceActor, ResourceClient};
 

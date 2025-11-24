@@ -18,7 +18,7 @@
 //!
 //! ```rust
 //! use actor_framework::ResourceClient;
-//! use actor_sample::model::{User, UserCreate};
+//! use actor_sample::model::{User, UserCreate, UserId};
 //! use actor_sample::user_actor::UserError;
 //!
 //! #[derive(Clone)]
@@ -32,7 +32,7 @@
 //!     }
 //!
 //!     // Domain-specific method with type-safe errors
-//!     pub async fn create_user(&self, params: UserCreate) -> Result<String, UserError> {
+//!     pub async fn create_user(&self, params: UserCreate) -> Result<UserId, UserError> {
 //!         self.inner.create(params).await
 //!             .map_err(|e| UserError::ActorCommunicationError(e.to_string()))
 //!     }

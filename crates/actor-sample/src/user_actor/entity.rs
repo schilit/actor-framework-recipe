@@ -5,7 +5,7 @@
 //!
 //! See the trait implementation on [`User`] for method documentation.
 
-use crate::model::{User, UserCreate, UserUpdate};
+use crate::model::{User, UserCreate, UserId, UserUpdate};
 use crate::user_actor::UserError;
 use actor_framework::ActorEntity;
 use async_trait::async_trait;
@@ -24,7 +24,7 @@ pub const ENTITY_IMPL_PRESENT: bool = true;
 
 #[async_trait]
 impl ActorEntity for User {
-    type Id = String;
+    type Id = UserId;
     type Create = UserCreate;
     type Update = UserUpdate;
     type Action = UserAction;
@@ -35,7 +35,7 @@ impl ActorEntity for User {
     // fn id(&self) -> &String { &self.id }
 
     /// Creates a new User from creation parameters.
-    fn from_create_params(id: String, params: UserCreate) -> Result<Self, Self::Error> {
+    fn from_create_params(id: UserId, params: UserCreate) -> Result<Self, Self::Error> {
         Ok(User {
             id,
             name: params.name,
