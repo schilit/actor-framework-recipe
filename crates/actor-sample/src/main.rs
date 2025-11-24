@@ -20,7 +20,8 @@
 //!
 //! See [`actor_framework::mock`] for utilities to test clients without spawning full actors.
 
-use actor_sample::lifecycle::{setup_tracing, OrderSystem};
+use actor_framework::tracing::setup_tracing;
+use actor_sample::lifecycle::OrderSystem;
 use actor_sample::model::{OrderCreate, ProductCreate, UserCreate};
 use tracing::{error, info, Instrument};
 

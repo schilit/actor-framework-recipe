@@ -100,8 +100,8 @@ pub mod error;
 pub use error::*;
 
 use crate::clients::OrderClient;
-use actor_framework::ResourceActor;
 use crate::model::Order;
+use actor_framework::ResourceActor;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 

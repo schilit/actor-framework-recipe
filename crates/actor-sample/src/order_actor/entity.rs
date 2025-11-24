@@ -6,9 +6,9 @@
 //! See the trait implementation on [`Order`] for method documentation.
 
 use crate::clients::{actor_client::ActorClient, ProductClient, UserClient};
-use actor_framework::ActorEntity;
 use crate::model::{Order, OrderCreate};
 use crate::order_actor::OrderError;
+use actor_framework::ActorEntity;
 use async_trait::async_trait;
 
 /// Marker constant to ensure module documentation is rendered.

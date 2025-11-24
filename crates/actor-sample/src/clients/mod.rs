@@ -101,7 +101,7 @@
 //!
 //!         // 2. Reserve product stock
 //!         self.product_client.reserve_stock(
-//!             params.product_id.clone(), 
+//!             params.product_id.clone(),
 //!             params.quantity
 //!         ).await?;
 //!
@@ -113,7 +113,7 @@
 //!                 // If we fail to create the order, we must release the stock
 //!                 // so it doesn't get "leaked" (permanently reserved).
 //!                 let _ = self.product_client.release_stock(
-//!                     params.product_id, 
+//!                     params.product_id,
 //!                     params.quantity
 //!                 ).await;
 //!                 

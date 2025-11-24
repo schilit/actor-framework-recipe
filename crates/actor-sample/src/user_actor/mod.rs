@@ -49,8 +49,8 @@ pub mod error;
 pub use error::*;
 
 use crate::clients::UserClient;
-use actor_framework::ResourceActor;
 use crate::model::User;
+use actor_framework::ResourceActor;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 

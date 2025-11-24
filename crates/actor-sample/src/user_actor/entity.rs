@@ -5,9 +5,9 @@
 //!
 //! See the trait implementation on [`User`] for method documentation.
 
-use actor_framework::ActorEntity;
 use crate::model::{User, UserCreate, UserUpdate};
 use crate::user_actor::UserError;
+use actor_framework::ActorEntity;
 use async_trait::async_trait;
 
 #[derive(Debug)]

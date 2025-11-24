@@ -68,8 +68,8 @@ pub use actions::*;
 pub use error::*;
 
 use crate::clients::ProductClient;
-use actor_framework::ResourceActor;
 use crate::model::Product;
+use actor_framework::ResourceActor;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 

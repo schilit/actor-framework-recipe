@@ -3,9 +3,9 @@
 //! Provides a high‑level API for interacting with the `Product` actor.
 //! It wraps a `ResourceClient<Product>` and exposes domain‑specific methods.
 use crate::clients::actor_client::ActorClient;
-use actor_framework::{FrameworkError, ResourceClient};
 use crate::model::Product;
 use crate::product_actor::ProductError;
+use actor_framework::{FrameworkError, ResourceClient};
 use async_trait::async_trait;
 use tracing::{debug, instrument};
 
@@ -38,7 +38,10 @@ impl ProductClient {
     // Custom create method as it needs specific payload conversion
 
     #[instrument(skip(self))]
-    pub async fn create_product(&self, params: crate::model::ProductCreate) -> Result<String, ProductError> {
+    pub async fn create_product(
+        &self,
+        params: crate::model::ProductCreate,
+    ) -> Result<String, ProductError> {
         debug!("Sending request");
         self.inner
             .create(params)
@@ -87,8 +90,8 @@ impl ProductClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actor_framework::mock::{create_mock_client, expect_action};
     use crate::product_actor::{ProductAction, ProductActionResult};
+    use actor_framework::mock::{create_mock_client, expect_action};
 
     #[tokio::test]
     async fn test_check_stock_returns_correct_level() {

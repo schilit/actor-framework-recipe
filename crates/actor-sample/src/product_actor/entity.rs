@@ -7,9 +7,9 @@
 //!
 //! See the trait implementation on [`Product`] for method documentation.
 
-use actor_framework::ActorEntity;
 use crate::model::{Product, ProductCreate, ProductUpdate};
 use crate::product_actor::{ProductAction, ProductActionResult, ProductError};
+use actor_framework::ActorEntity;
 use async_trait::async_trait;
 
 /// Marker constant to ensure module documentation is rendered.

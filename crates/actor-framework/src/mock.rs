@@ -187,7 +187,7 @@
 //! <details>
 //! <summary><b>How to use Feature Flags for Testing</b></summary>
 //!
-//! Sometimes you need to inspect internal actor state for testing. Use a Cargo **feature flag** (`testing`) 
+//! Sometimes you need to inspect internal actor state for testing. Use a Cargo **feature flag** (`testing`)
 //! instead of `#[cfg(test)]` so it works with integration tests.
 //!
 //! ```toml

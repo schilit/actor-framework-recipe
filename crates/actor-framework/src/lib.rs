@@ -68,8 +68,8 @@
 //!         Ok(Self { id, name: params.name, email: params.email })
 //!     }
 //!
-//!     async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context) 
-//!         -> Result<(), Self::Error> 
+//!     async fn on_update(&mut self, update: UserUpdate, _ctx: &Self::Context)
+//!         -> Result<(), Self::Error>
 //!     {
 //!         if let Some(name) = update.name { self.name = name; }
 //!         Ok(())
@@ -143,6 +143,7 @@ pub mod entity;
 pub mod error;
 pub mod message;
 pub mod mock;
+pub mod tracing;
 
 // Re-export core types for convenience
 pub use actor::ResourceActor;

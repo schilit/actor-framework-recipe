@@ -129,7 +129,11 @@ async fn test_concurrent_orders() {
         price: 10.0,
         quantity: 20,
     };
-    let product_id = system.product_client.create_product(product_params).await.unwrap();
+    let product_id = system
+        .product_client
+        .create_product(product_params)
+        .await
+        .unwrap();
 
     // Create multiple orders concurrently
     let mut handles = vec![];
