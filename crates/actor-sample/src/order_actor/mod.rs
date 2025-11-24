@@ -101,20 +101,9 @@ pub use error::*;
 
 use crate::clients::OrderClient;
 use crate::model::Order;
-use actor_framework::ResourceActor;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use actor_framework::{ResourceActor, ResourceClient};
 
 /// Creates a new Order actor and its client.
-pub fn new() -> (ResourceActor<Order>, OrderClient) {
-    let order_id_counter = Arc::new(AtomicU64::new(1));
-    let next_order_id = move || {
-        let id = order_id_counter.fetch_add(1, Ordering::SeqCst);
-        format!("order_{}", id)
-    };
-
-    let (actor, generic_client) = ResourceActor::new(32, next_order_id);
-    let client = OrderClient::new(generic_client);
-
-    (actor, client)
+pub fn new() -> (ResourceActor<Order>, ResourceClient<Order>) {
+    ResourceActor::new(32)
 }

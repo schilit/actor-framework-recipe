@@ -67,10 +67,13 @@ impl OrderSystem {
     ///
     /// A fully initialized `OrderSystem` with all actors running and ready to accept requests.
     pub fn new() -> Self {
-        // 1. Create actors (no dependencies)
-        let (user_actor, user_client) = crate::user_actor::new();
-        let (product_actor, product_client) = crate::product_actor::new();
-        let (order_actor, order_client) = crate::order_actor::new();
+        // 1. Create actors (no dependencies) and wrap generic clients
+        let (user_actor, user_generic_client) = crate::user_actor::new();
+        let user_client = UserClient::new(user_generic_client);
+        let (product_actor, product_generic_client) = crate::product_actor::new();
+        let product_client = ProductClient::new(product_generic_client);
+        let (order_actor, order_generic_client) = crate::order_actor::new();
+        let order_client = OrderClient::new(order_generic_client);
 
         // 2. Start actors with injected context
         // User and Product have no dependencies (Context = ())

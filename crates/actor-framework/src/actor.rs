@@ -32,19 +32,16 @@ use tracing::{debug, info, warn};
 pub struct ResourceActor<T: ActorEntity> {
     receiver: mpsc::Receiver<ResourceRequest<T>>,
     store: HashMap<T::Id, T>,
-    next_id_fn: Box<dyn Fn() -> T::Id + Send + Sync>,
+    next_id: u32,
 }
 
 impl<T: ActorEntity> ResourceActor<T> {
-    pub fn new(
-        buffer_size: usize,
-        next_id_fn: impl Fn() -> T::Id + Send + Sync + 'static,
-    ) -> (Self, ResourceClient<T>) {
+    pub fn new(buffer_size: usize) -> (Self, ResourceClient<T>) {
         let (sender, receiver) = mpsc::channel(buffer_size);
         let actor = Self {
             receiver,
             store: HashMap::new(),
-            next_id_fn: Box::new(next_id_fn),
+            next_id: 1,
         };
         let client = ResourceClient::new(sender);
         (actor, client)
@@ -68,7 +65,8 @@ impl<T: ActorEntity> ResourceActor<T> {
             match msg {
                 ResourceRequest::Create { params, respond_to } => {
                     debug!(entity_type, ?params, "Create");
-                    let id = (self.next_id_fn)();
+                    let id = T::Id::from(self.next_id);
+                    self.next_id += 1;
 
                     match T::from_create_params(id.clone(), params) {
                         Ok(mut item) => {
@@ -166,8 +164,6 @@ mod tests {
     use super::*;
     use crate::entity::ActorEntity;
     use async_trait::async_trait;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    use std::sync::Arc;
 
     // --- Domain Definition ---
 
@@ -257,15 +253,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_resource_actor_with_actions() {
-        // ID Generator
-        let counter = Arc::new(AtomicU64::new(1));
-        let next_id = move || {
-            let id = counter.fetch_add(1, Ordering::SeqCst);
-            format!("user_{}", id)
-        };
-
         // Start Actor
-        let (actor, client) = ResourceActor::new(10, next_id);
+        let (actor, client) = ResourceActor::new(10);
         tokio::spawn(actor.run(()));
 
         // 1. Create

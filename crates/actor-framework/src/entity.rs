@@ -39,7 +39,8 @@ use std::hash::Hash;
 #[async_trait]
 pub trait ActorEntity: Clone + Send + Sync + 'static {
     /// The unique identifier for this entity (e.g., String, Uuid, u64).
-    type Id: Eq + Hash + Clone + Send + Sync + Display + Debug;
+    /// Must be convertible from u32 for automatic ID generation.
+    type Id: Eq + Hash + Clone + Send + Sync + Display + Debug + From<u32>;
 
     /// The data required to create a new instance (DTO - Data Transfer Object).
     type Create: Send + Sync + Debug;
