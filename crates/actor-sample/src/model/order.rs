@@ -1,0 +1,59 @@
+/// Represents a customer order.
+///
+/// # Actor Framework
+/// This struct implements the [`ActorEntity`](actor_framework::ActorEntity) trait,
+/// allowing it to be managed by a [`ResourceActor`](actor_framework::ResourceActor).
+///
+/// See [`impl ActorEntity for Order`](#impl-ActorEntity-for-Order) for details on:
+/// - Creation parameters ([`OrderCreate`])
+#[derive(Debug, Clone)]
+pub struct Order {
+    #[allow(dead_code)]
+    pub id: String,
+    pub user_id: String,
+    pub product_id: String,
+    pub quantity: u32,
+    pub total: f64,
+    #[allow(dead_code)]
+    pub status: String,
+}
+
+/// Payload for creating a new order.
+#[derive(Debug)]
+pub struct OrderCreate {
+    pub user_id: String,
+    pub product_id: String,
+    pub quantity: u32,
+    pub total: f64,
+}
+
+impl Order {
+    /// Creates a new Order instance.
+    ///
+    /// # Arguments
+    /// * `id` - Unique identifier (typically set by the actor system)
+    /// * `user_id` - ID of the user placing the order
+    /// * `product_id` - ID of the product being ordered
+    /// * `quantity` - Quantity ordered
+    /// * `total` - Total price for the order
+    ///
+    /// # Notes
+    /// The order is initialized with status "Created".
+    /// This constructor is kept for backward compatibility.
+    pub fn new(
+        id: impl Into<String>,
+        user_id: impl Into<String>,
+        product_id: impl Into<String>,
+        quantity: u32,
+        total: f64,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            user_id: user_id.into(),
+            product_id: product_id.into(),
+            quantity,
+            total,
+            status: "Created".to_string(),
+        }
+    }
+}
