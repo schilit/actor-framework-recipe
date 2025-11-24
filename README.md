@@ -9,8 +9,10 @@ This project demonstrates a pattern for building type-safe actor systems using T
 
 ## Documentation
 
-- **[Framework API Docs](target/doc/actor_framework/index.html)** - Run `cargo doc --open`
-- **[Example App Docs](target/doc/actor_sample/index.html)** - Application documentation
+- **[Framework API Docs](https://schilit.github.io/actor-framework-recipe/actor_framework/)** - Core framework library
+- **[Example App Docs](https://schilit.github.io/actor-framework-recipe/actor_sample/)** - Sample application
+
+Run `cargo doc --open` to view docs locally.
 
 ## Project Structure
 
