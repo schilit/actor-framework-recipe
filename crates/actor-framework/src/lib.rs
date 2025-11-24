@@ -123,16 +123,86 @@
 //! Dependencies are injected at **runtime** via the `run()` method, not at construction time.
 //! This "late binding" pattern solves circular dependencies:
 //!
-//! ```rust,ignore
-//! // 1. Create all actors (no dependencies yet)
-//! let (user_actor, user_client) = user_actor::new();
-//! let (product_actor, product_client) = product_actor::new();
-//! let (order_actor, order_client) = order_actor::new();
+//! ```rust
+//! use actor_framework::{ActorEntity, ResourceActor, ResourceClient};
+//! use async_trait::async_trait;
 //!
-//! // 2. Wire dependencies when starting actors
-//! tokio::spawn(user_actor.run(()));  // User has no dependencies
-//! tokio::spawn(product_actor.run(()));  // Product has no dependencies
-//! tokio::spawn(order_actor.run((user_client.clone(), product_client.clone())));
+//! // --- Define Minimal Entities ---
+//! #[derive(Clone, Debug)] struct User { id: u32 }
+//! #[derive(Debug)] struct UserCreate;
+//! #[derive(Debug)] struct UserUpdate;
+//! #[derive(Debug)] enum UserAction {}
+//! #[derive(Debug)] struct UserError;
+//! impl std::fmt::Display for UserError { fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "Err") } }
+//! impl std::error::Error for UserError {}
+//! impl From<String> for UserError { fn from(_: String) -> Self { UserError } }
+//!
+//! #[async_trait]
+//! impl ActorEntity for User {
+//!     type Id = u32; type Create = UserCreate; type Update = UserUpdate; type Action = UserAction;
+//!     type ActionResult = (); type Context = (); type Error = UserError;
+//!     fn from_create_params(id: u32, _: UserCreate) -> Result<Self, Self::Error> { Ok(Self { id }) }
+//!     async fn on_update(&mut self, _: UserUpdate, _: &()) -> Result<(), Self::Error> { Ok(()) }
+//!     async fn handle_action(&mut self, _: UserAction, _: &()) -> Result<(), Self::Error> { Ok(()) }
+//! }
+//!
+//! #[derive(Clone, Debug)] struct Product { id: u32 }
+//! // ... (impl ActorEntity for Product similar to User) ...
+//! # #[derive(Debug)] struct ProductCreate;
+//! # #[derive(Debug)] struct ProductUpdate;
+//! # #[derive(Debug)] enum ProductAction {}
+//! # #[derive(Debug)] struct ProductError;
+//! # impl std::fmt::Display for ProductError { fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "Err") } }
+//! # impl std::error::Error for ProductError {}
+//! # impl From<String> for ProductError { fn from(_: String) -> Self { ProductError } }
+//! # #[async_trait]
+//! # impl ActorEntity for Product {
+//! #     type Id = u32; type Create = ProductCreate; type Update = ProductUpdate; type Action = ProductAction;
+//! #     type ActionResult = (); type Context = (); type Error = ProductError;
+//! #     fn from_create_params(id: u32, _: ProductCreate) -> Result<Self, Self::Error> { Ok(Self { id }) }
+//! #     async fn on_update(&mut self, _: ProductUpdate, _: &()) -> Result<(), Self::Error> { Ok(()) }
+//! #     async fn handle_action(&mut self, _: ProductAction, _: &()) -> Result<(), Self::Error> { Ok(()) }
+//! # }
+//!
+//! #[derive(Clone, Debug)] struct Order { id: u32 }
+//! // Order depends on UserClient and ProductClient
+//! type OrderContext = (ResourceClient<User>, ResourceClient<Product>);
+//!
+//! #[derive(Debug)] struct OrderCreate;
+//! #[derive(Debug)] struct OrderUpdate;
+//! #[derive(Debug)] enum OrderAction {}
+//! #[derive(Debug)] struct OrderError;
+//! impl std::fmt::Display for OrderError { fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "Err") } }
+//! impl std::error::Error for OrderError {}
+//! impl From<String> for OrderError { fn from(_: String) -> Self { OrderError } }
+//!
+//! #[async_trait]
+//! impl ActorEntity for Order {
+//!     type Id = u32; type Create = OrderCreate; type Update = OrderUpdate; type Action = OrderAction;
+//!     type ActionResult = (); type Context = OrderContext; type Error = OrderError;
+//!
+//!     fn from_create_params(id: u32, _: OrderCreate) -> Result<Self, Self::Error> { Ok(Self { id }) }
+//!     async fn on_update(&mut self, _: OrderUpdate, _: &OrderContext) -> Result<(), Self::Error> { Ok(()) }
+//!     async fn handle_action(&mut self, _: OrderAction, _: &OrderContext) -> Result<(), Self::Error> { Ok(()) }
+//!     // In a real app, on_create would use the context to validate user/product
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // 1. Create all actors (no dependencies yet)
+//!     let (user_actor, user_client) = ResourceActor::<User>::new(10);
+//!     let (product_actor, product_client) = ResourceActor::<Product>::new(10);
+//!     let (order_actor, order_client) = ResourceActor::<Order>::new(10);
+//!
+//!     // 2. Wire dependencies when starting actors
+//!     tokio::spawn(user_actor.run(()));
+//!     tokio::spawn(product_actor.run(()));
+//!     // Order actor gets the clients it needs
+//!     tokio::spawn(order_actor.run((user_client, product_client)));
+//!
+//!     // 3. Use the actor (keeps main alive)
+//!     let _ = order_client.create(OrderCreate).await;
+//! }
 //! ```
 //!
 //! The `Order` actor receives `(UserClient, ProductClient)` as its context, allowing it to
