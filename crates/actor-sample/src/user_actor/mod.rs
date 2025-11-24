@@ -50,7 +50,6 @@ pub mod error;
 
 pub use error::*;
 
-
 use crate::model::User;
 use actor_framework::ResourceActor;
 use actor_framework::ResourceClient;

@@ -69,7 +69,6 @@ pub mod error;
 pub use actions::*;
 pub use error::*;
 
-
 use crate::model::Product;
 use actor_framework::{ResourceActor, ResourceClient};
 

@@ -126,11 +126,8 @@ mod tests {
         let product_client = ProductClient::new(client);
 
         // Spawn task to call reserve_stock
-        let reserve_task = tokio::spawn(async move {
-            product_client
-                .reserve_stock(ProductId(1), 5)
-                .await
-        });
+        let reserve_task =
+            tokio::spawn(async move { product_client.reserve_stock(ProductId(1), 5).await });
 
         // Expect the action request
         let (id, action, responder) = expect_action(&mut receiver)
@@ -159,11 +156,8 @@ mod tests {
         let product_client = ProductClient::new(client);
 
         // Spawn task to call reserve_stock
-        let reserve_task = tokio::spawn(async move {
-            product_client
-                .reserve_stock(ProductId(1), 100)
-                .await
-        });
+        let reserve_task =
+            tokio::spawn(async move { product_client.reserve_stock(ProductId(1), 100).await });
 
         // Expect the action request
         let (id, action, responder) = expect_action(&mut receiver)

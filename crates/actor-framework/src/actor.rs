@@ -158,5 +158,3 @@ impl<T: ActorEntity> ResourceActor<T> {
         info!(entity_type, size = self.store.len(), "Shutdown");
     }
 }
-
-
